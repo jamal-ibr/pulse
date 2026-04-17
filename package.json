@@ -1,0 +1,24 @@
+{
+  "name": "pulse-lead-scraper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Invisalign-focused dental/ortho lead scraper for the West Midlands (Pulse agency).",
+  "scripts": {
+    "build": "tsc -p scripts/scrape-leads/tsconfig.json",
+    "scrape:leads": "npm run build && node scripts/scrape-leads/dist/index.js",
+    "scrape:leads:smoke": "TARGET_LEADS=20 SMOKE=1 npm run scrape:leads",
+    "scrape:leads:verify": "node scripts/scrape-leads/dist/verify.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "p-limit": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
