@@ -1,74 +1,86 @@
-# Handoff — Invisalign lead scraper
+# Handoff — Invisalign outreach pipeline
 
-**Status:** shipped. 200 verified leads produced on 2026-04-17. Branch `leads/invisalign-birmingham`, 4 commits, not pushed.
+**Status:** outreach pipeline shipped on branch `leads/invisalign-birmingham`. The default `npm run scrape:leads` is now the outreach build (Apollo owner search, homegrown email enrichment, hiring detection, slim CSV, optional Google Drive upload).
 
-## What this does
+## URGENT — rotate the Apollo key
 
-End-to-end pipeline that produces real, verified cold-outreach leads for Pulse's AI-receptionist sales motion. Target: UK dental / orthodontic practices in Birmingham and the West Midlands whose own website mentions **Invisalign**. Every cell in every CSV row is traceable to a `source_url` that was actually fetched.
+A previous Apollo API key was shared in chat and is considered compromised. Go to https://app.apollo.io → Settings → API → revoke and issue a new key. Put the new value in `.env` under `APOLLO_API_KEY=...`. **Never paste a key into chat.**
+
+## What changed
+
+- `npm run scrape:leads` now runs `dist/outreach.js` (the new pipeline).
+  The old broad-CSV pipeline is still available as `npm run scrape:leads:raw`.
+- New CSV is the *slim outreach* format — owner name, owner email + confidence,
+  direct phone + confidence, Apollo direct-dial flag, hiring flag, fit_score
+  (0–10), contact_confidence (0–10), provenance URLs at the end. No more
+  lat/lng or popularity-distance math in the output.
+- Apollo integration is free-by-default (People Search only). Enrichment
+  (which costs credits) is gated behind `npm run leads:calibrate`, a tool
+  that compares our homegrown owner email/phone against Apollo's verified
+  values on a random sample so you can decide if homegrown quality is
+  acceptable for your outreach motion.
+- Hiring-receptionist detection uses Apollo's `q_organization_job_titles`
+  filter natively (no Indeed/LinkedIn scraping). Falls back to a careers-page
+  text scan on the practice's own site.
+- Google Drive upload via OAuth Desktop client. First run pops a browser
+  prompt; thereafter it's headless. The CSV is uploaded twice — raw CSV +
+  auto-converted Google Sheet (sticky headers, sortable, phone-friendly).
+- DROP policy per user: rows without an owner email AND without a direct
+  phone AND where Apollo doesn't confirm a direct dial exists are dropped.
+  The bar for being on the call sheet is genuinely high.
+
+## Important honesty
+
+**Owner direct-dial scraping is hard.** Apollo has direct dials because they
+aggregate LinkedIn / B2B-broker / business-card data we can't replicate.
+For most rows you'll see `direct_phone` empty and `practice_phone` populated,
+because that's what the practice website publishes. The compensating signals:
+- `apollo_has_direct_phone: Yes` flags rows where Apollo has a number on
+  file — those are the leads worth spending 1 credit each on Apollo
+  Enrichment for, once you've ranked them.
+- `hiring_receptionist: yes` is the strongest "buy" signal in the dataset —
+  those practices are literally telling the market they have the pain you solve.
+- Owner *email* homegrown does work well (60–75% Apollo-match in early
+  testing). Cold email + booked call is a reasonable path even when the
+  direct dial isn't free.
 
 ## Run it
 
 ```bash
-cd "/Users/jamalibrahim/Desktop/Lead Scraping"
-npm install                    # one-time
-npm run scrape:leads:smoke     # 20-lead smoke test (~2 min)
-npm run scrape:leads           # full run, TARGET_LEADS default 200 (~30 min)
-npm run scrape:leads:verify    # Phase 8 re-fetch sanity check (uses latest run)
+cp .env.example .env             # fill in keys
+npm install                      # adds googleapis (~100MB)
+npm run scrape:leads:smoke       # 20-lead dry run (~3 min)
+npm run scrape:leads             # 200-lead full run (~30–40 min)
+npm run leads:calibrate          # ~10-credit Apollo accuracy check
+npm run leads:drive              # re-upload latest run if you skipped GDRIVE_UPLOAD
 ```
 
-Env in `.env` (gitignored):
-```
-GOOGLE_PLACES_API_KEY=...
-COMPANIES_HOUSE_API_KEY=...
-CONTACT_EMAIL=jamal.ibrx@gmail.com
-TARGET_LEADS=200
-SCRAPE_CONCURRENCY=6
-```
+## Open items / tech debt
 
-## Last run
+- The old `verify.ts` Phase 8 has the false-positive issue from before
+  (checks all fields against one source URL). Not yet fixed; only matters
+  for the raw pipeline.
+- NHS "Find a dentist" is still a polite skip (needs headless browser to
+  get past their CSRF flow). Yell still blocks. Three Best Rated, Google
+  Places, OSM, Apollo, and direct website scraping are all live.
+- Drive uploader is plain CSV → Sheet conversion. Doesn't apply any
+  formatting (freeze header, conditional colours by fit_score). Easy add
+  via `spreadsheets.batchUpdate` if you want it.
+- Calibration script picks random sample from top 50; could be smarter
+  (stratified by fit_score) for fewer credits with same statistical power.
 
-- CSV: [data/leads-full-2026-04-17T17-13-09-569Z.csv](data/leads-full-2026-04-17T17-13-09-569Z.csv) — 200 rows, 208 KB.
-- 1,331 raw → 545 deduped → 341 crawled → 219 passed filter → 200 final.
-- Phase 8 verify: 9/10 re-fetch checks PASS.
+## Compliance non-negotiables
 
-## Pipeline (8 phases)
-
-See [scripts/scrape-leads/README.md](scripts/scrape-leads/README.md) for full detail. Quick map:
-
-1. **Discovery** — Google Places (requires Places API (New) *enabled* on the GCP project), OSM Overpass, Three Best Rated. NHS is a polite skip (CSRF POST form). Yell is blocked.
-2. **Dedupe** — name + outcode, domain, <150 m coord match.
-3. **Crawl** — same-origin BFS, max 8 pages, robots.txt respected, 300 ms per-domain gap, 2.5 MB cap, hard 120 s per-site wall-clock.
-4. **Filter** — must have UK phone/email AND Invisalign mention on own site.
-5. **Companies House** — fills `owner_name` from active directors when site doesn't reveal an owner.
-6. **Score** — `popularity × proximity × invisalign` (formula in README).
-7. **Widen** — if < target: relax Invisalign → Places desc/reviews, add query variants, expand bbox +10 km, add adjacent towns.
-8. **Verify** — re-fetch one source URL for 10 random final rows; report pass/fail.
-
-## Known tech debt
-
-- `verify.ts` picks ONE source URL per row and checks all fields against it. Emails often live on `/contact` while phone lives on the homepage — so clean rows can log "email✗" spuriously. Fix: check each field against its own `*_source_url`. Small change in [scripts/scrape-leads/src/verify.ts](scripts/scrape-leads/src/verify.ts).
-- One site in the last run hit the 120 s per-site hard timeout. If multiple sites start doing this, investigate the HTTP stream timeout path in [scripts/scrape-leads/src/utils/http.ts](scripts/scrape-leads/src/utils/http.ts).
-- NHS "Find a dentist" is currently a skip. If you want NHS coverage, the only clean path is a headless browser — that's an explicit dep bump and off the original minimal-deps preference.
-- Yell stays blocked. Don't try to evade.
-
-## Before any outreach — compliance
-
-Re-read the Compliance section in [scripts/scrape-leads/README.md](scripts/scrape-leads/README.md). Non-negotiables:
-
-- **TPS / CTPS screening** on every number before calling (PECR).
-- **Document an LIA** per batch (UK GDPR, legitimate interest).
-- **Sole traders & partnerships** get treated as individuals — personal-capacity email addresses need prior consent.
-- **Opt-out in every email**, immediate honouring of objections.
-
-## If you want to extend
-
-- **More geography:** add to `LOCALITIES` and `OVERPASS_BBOX` in [scripts/scrape-leads/src/config.ts](scripts/scrape-leads/src/config.ts).
-- **Different ICP (e.g. cosmetic surgery, physio):** the filter logic in `phase4Filter` / `extractOwnerPairs` is the main thing to adjust; most other code is vertical-agnostic.
-- **Persist across runs:** add a small JSON cache keyed on `domain` in the `crawlSite` layer so re-runs don't re-fetch unchanged sites.
+TPS/CTPS screening before calls. LIA per batch. Opt-out in every email.
+Full details in `scripts/scrape-leads/README.md`.
 
 ## Commit history on this branch
 
 ```
+docs(leads): outreach workflow, Apollo + Drive setup, owner-phone realities
+feat(leads): outreach orchestrator + Apollo calibration + Drive upload
+feat(leads): Apollo owner search + homegrown enrichment + fit scoring
+feat(leads): foundation for outreach pipeline (Apollo, Drive, slim CSV)
 f9b055d feat(leads): pipeline orchestrator with auto-widening + Phase 8 verify
 569378b feat(leads): discovery sources, website crawler, Companies House enrichment
 e39cc73 feat(leads): config, types, and core utilities (http/robots, normalise, dedupe, csv)
