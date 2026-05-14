@@ -63,8 +63,8 @@ interface FullyEnriched {
 async function main(): Promise<void> {
   const started = Date.now();
   const target = CONFIG.targetLeads;
-  const runTag = CONFIG.smoke ? "outreach-smoke" : "outreach-full";
-  log.info("outreach pipeline starting", { target, runTag });
+  const runTag = CONFIG.smoke ? "outreach-smoke" : CONFIG.qualityMode ? "outreach-quality" : "outreach-full";
+  log.info("outreach pipeline starting", { target, runTag, qualityMode: CONFIG.qualityMode });
 
   // ─── Phases 1–5: reuse the existing pipeline (discovery → CH) ─────────
   const placesVariants = ["Invisalign dentist", "orthodontist Invisalign"];
@@ -97,16 +97,17 @@ async function main(): Promise<void> {
 
   const enriched: EnrichedCluster[] = await phase3Crawl(crawlCandidates);
   let filtered = phase4Filter(enriched, false);
-  if (filtered.length < target * 2 && !CONFIG.smoke) {
-    log.info("relaxing Invisalign filter to widen candidate pool for owner enrichment");
+  if (!CONFIG.qualityMode && filtered.length < target * 2 && !CONFIG.smoke) {
+    log.info("relaxing Invisalign filter to widen candidate pool");
     filtered = phase4Filter(enriched, true);
   }
 
-  const chMap = await phase5CompaniesHouse(filtered, Math.min(filtered.length, target * 2));
+  const chCap = CONFIG.qualityMode ? filtered.length : Math.min(filtered.length, target * 2);
+  const chMap = await phase5CompaniesHouse(filtered, chCap);
 
   // ─── Phase 6: Apollo owner search (FREE) ─────────────────────────────
   log.info("PHASE 6: Apollo owner search begin", { candidates: filtered.length });
-  const apolloLimit = pLimit(1); // self-rate-limited inside Apollo client anyway
+  const apolloLimit = pLimit(1);
   const apolloOwners = new Map<string, ApolloPerson | null>();
   if (CONFIG.apolloKey) {
     await Promise.all(
@@ -184,6 +185,8 @@ async function main(): Promise<void> {
   log.info("PHASE 7+8: end", { fullyEnriched: fullyEnriched.length });
 
   // ─── Phase 9: Drop policy + Phase 10: Scoring ────────────────────────
+  let droppedNoContact = 0;
+  let droppedQuality = 0;
   const allLeads: OutreachLead[] = [];
   for (const e of fullyEnriched) {
     const f = e.f;
@@ -193,12 +196,30 @@ async function main(): Promise<void> {
       Boolean(f.cluster.placesReviewInvisalign || /invisalign/i.test(f.cluster.placesDescription ?? "")),
     );
     const hasOwnerEmail = Boolean(e.homegrown.email);
+    const hasScrapedEmail =
+      e.homegrown.emailMethod === "scraped_name_match" || e.homegrown.emailMethod === "scraped_same_domain";
     const hasDirectPhone = Boolean(e.homegrown.directPhone);
     const apolloConfirmsDirect = e.apolloFlag === "Yes";
+    const isHiring = e.hiring.isHiringReceptionist;
 
-    // DROP POLICY: per user, drop if no owner email AND no direct phone AND
-    // Apollo doesn't even confirm a direct dial exists in their data.
-    if (!hasOwnerEmail && !hasDirectPhone && !apolloConfirmsDirect) continue;
+    // ─── DROP POLICY ──────────────────────────────────────────────
+    if (CONFIG.qualityMode) {
+      // Strict: hiring is a free pass (active pain). Otherwise must be
+      // Invisalign-STRONG AND have a real contact channel (not pattern guess).
+      const passes =
+        isHiring ||
+        (invisalignStrength === "strong" && (hasScrapedEmail || apolloConfirmsDirect || hasDirectPhone));
+      if (!passes) {
+        droppedQuality++;
+        continue;
+      }
+    } else {
+      // Looser default: need any contact route at all.
+      if (!hasOwnerEmail && !hasDirectPhone && !apolloConfirmsDirect) {
+        droppedNoContact++;
+        continue;
+      }
+    }
 
     const fit = computeFitScore({
       invisalignStrength,
@@ -206,7 +227,7 @@ async function main(): Promise<void> {
       ownerEmailConfidence: e.homegrown.emailConfidence,
       ownerDirectPhoneConfidence: e.homegrown.directPhoneConfidence,
       apolloHasDirectPhone: e.apolloFlag,
-      hiringReceptionist: e.hiring.isHiringReceptionist,
+      hiringReceptionist: isHiring,
       rating: f.cluster.rating ?? 0,
       reviewCount: f.cluster.reviewCount ?? 0,
     });
@@ -220,10 +241,10 @@ async function main(): Promise<void> {
 
     const notes: string[] = [];
     if (e.homegrown.emailMethod === "pattern") notes.push("email: pattern + MX verified (medium conf)");
-    if (e.homegrown.emailMethod === "scraped_name_match") notes.push("email: scraped on site, matches owner name");
-    if (e.homegrown.emailMethod === "scraped_same_domain") notes.push("email: scraped same-domain personal-form");
-    if (apolloConfirmsDirect && !hasDirectPhone) notes.push("Apollo confirms direct dial exists — enrich 1 credit to retrieve");
-    if (e.hiring.isHiringReceptionist) notes.push("HIRING receptionist — ideal pain match");
+    if (e.homegrown.emailMethod === "scraped_name_match") notes.push("email: scraped, name match");
+    if (e.homegrown.emailMethod === "scraped_same_domain") notes.push("email: scraped same-domain");
+    if (apolloConfirmsDirect && !hasDirectPhone) notes.push("Apollo confirms direct dial — enrich 1 credit to retrieve");
+    if (isHiring) notes.push("HIRING receptionist — ideal pain match");
 
     allLeads.push({
       rank: 0,
@@ -236,7 +257,7 @@ async function main(): Promise<void> {
       direct_phone_confidence: e.homegrown.directPhoneConfidence,
       apollo_has_direct_phone: e.apolloFlag,
       practice_phone: e.homegrown.practicePhone,
-      hiring_receptionist: e.hiring.isHiringReceptionist ? "yes" : CONFIG.apolloKey ? "no" : "unknown",
+      hiring_receptionist: isHiring ? "yes" : CONFIG.apolloKey ? "no" : "unknown",
       website: f.cluster.website ?? "",
       city: extractCity(f.cluster.address ?? ""),
       postcode: f.postcode ?? "",
@@ -253,8 +274,9 @@ async function main(): Promise<void> {
     });
   }
 
-  // Rank: fit_score primary, contact_confidence secondary, rating × reviews tiebreak
-  const ranked = allLeads
+  // Rank: fit_score primary, contact_confidence secondary, rating tiebreak.
+  // Quality mode: ship ALL passing leads. Default mode: cap at TARGET_LEADS.
+  const sorted = allLeads
     .sort((a, b) => {
       if (b.fit_score !== a.fit_score) return b.fit_score - a.fit_score;
       if (b.contact_confidence !== a.contact_confidence) return b.contact_confidence - a.contact_confidence;
@@ -263,9 +285,8 @@ async function main(): Promise<void> {
       const arc = typeof a.review_count === "number" ? a.review_count : 0;
       const brc = typeof b.review_count === "number" ? b.review_count : 0;
       return br * Math.log10(brc + 10) - ar * Math.log10(arc + 10);
-    })
-    .map((l, i) => ({ ...l, rank: i + 1 }))
-    .slice(0, target);
+    });
+  const ranked = (CONFIG.qualityMode ? sorted : sorted.slice(0, target)).map((l, i) => ({ ...l, rank: i + 1 }));
 
   // ─── Phase 11: Write outputs ─────────────────────────────────────────
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -277,7 +298,8 @@ async function main(): Promise<void> {
   const hiringCount = fullyEnriched.filter((e) => e.hiring.isHiringReceptionist).length;
   const summary = {
     generatedAt: new Date().toISOString(),
-    target,
+    qualityMode: CONFIG.qualityMode,
+    target: CONFIG.qualityMode ? null : target,
     runMins: Math.round((Date.now() - started) / 60_000),
     funnel: {
       rawTotal: discovery.raw.length,
@@ -286,7 +308,8 @@ async function main(): Promise<void> {
       filtered: filtered.length,
       apolloOwnerFound: [...apolloOwners.values()].filter(Boolean).length,
       hiring: hiringCount,
-      droppedNoContact: filtered.length - allLeads.length,
+      droppedNoContact,
+      droppedQuality,
       delivered: ranked.length,
     },
     apollo: apolloStats,
@@ -314,14 +337,17 @@ async function main(): Promise<void> {
 
   // ─── Console summary ─────────────────────────────────────────────────
   console.log("\n=========== OUTREACH SUMMARY ===========");
-  console.log(`Delivered      : ${ranked.length} / ${target}`);
+  console.log(`Run type       : ${runTag}${CONFIG.qualityMode ? " (quality bar = strict)" : ""}`);
+  console.log(`Delivered      : ${ranked.length}${CONFIG.qualityMode ? " (no target cap)" : " / " + target}`);
   console.log(`Run mins       : ${summary.runMins}`);
   console.log(
     `Funnel         : raw=${summary.funnel.rawTotal} clusters=${summary.funnel.clusters} filtered=${summary.funnel.filtered} delivered=${summary.funnel.delivered}`,
   );
   console.log(`Apollo owner   : ${summary.funnel.apolloOwnerFound} found (${apolloStats.totalRequests} free reqs)`);
   console.log(`Hiring matches : ${summary.funnel.hiring}`);
-  console.log(`Dropped no-contact: ${summary.funnel.droppedNoContact}`);
+  console.log(
+    `Dropped        : ${summary.funnel.droppedQuality} quality-fail, ${summary.funnel.droppedNoContact} no-contact`,
+  );
   console.log(`CSV            : ${csvPath}`);
   if (driveResult?.sheetUrl) console.log(`Google Sheet   : ${driveResult.sheetUrl}`);
   console.log("\nTop 10 by fit_score:");

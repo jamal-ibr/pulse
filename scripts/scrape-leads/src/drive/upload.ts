@@ -1,6 +1,7 @@
 import { createReadStream } from "node:fs";
 import { basename } from "node:path";
 import { getOAuthClient } from "./oauth.js";
+import { getServiceAccountAuth } from "./service-account.js";
 import { CONFIG } from "../config.js";
 import { log } from "../utils/logger.js";
 
@@ -11,10 +12,19 @@ export interface DriveUploadResult {
   sheetId: string;
 }
 
+async function pickAuth(): Promise<unknown> {
+  // Service account first — works headless in CI, no browser prompt.
+  if (CONFIG.gdriveServiceAccountJson) {
+    return getServiceAccountAuth();
+  }
+  // Fall back to OAuth Desktop for local interactive use.
+  return getOAuthClient();
+}
+
 /**
  * Upload the outreach CSV to Google Drive twice:
- *   1. As a plain .csv file (canonical source of truth)
- *   2. As a Google Sheet (CSV auto-imported on upload via mimeType swap)
+ *   1. As a plain .csv file (canonical source of truth).
+ *   2. As a Google Sheet (CSV auto-imported on upload via mimeType swap).
  *
  * The Sheet is what you'll actually use on your phone — sticky headers,
  * filtering, sorting, can be edited as you work through the list.
@@ -26,7 +36,7 @@ export async function uploadOutreachToDrive(opts: {
 }): Promise<DriveUploadResult | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { google } = (await import("googleapis")) as any;
-  const auth = await getOAuthClient();
+  const auth = await pickAuth();
   const drive = google.drive({ version: "v3", auth });
 
   const folderId = CONFIG.gdriveFolderId || undefined;
@@ -41,6 +51,7 @@ export async function uploadOutreachToDrive(opts: {
     },
     media: { mimeType: "text/csv", body: createReadStream(opts.csvPath) },
     fields: "id, webViewLink",
+    supportsAllDrives: true,
   });
   const csvId: string = csvUpload.data.id;
 
@@ -52,6 +63,7 @@ export async function uploadOutreachToDrive(opts: {
     },
     media: { mimeType: "text/csv", body: createReadStream(opts.csvPath) },
     fields: "id, webViewLink",
+    supportsAllDrives: true,
   });
   const sheetId: string = sheetUpload.data.id;
 

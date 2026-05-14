@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-// Compiled path: <project>/scripts/scrape-leads/dist/config.js → up 3 levels to project root
 export const ROOT = resolve(__dirname, "..", "..", "..");
 
 function loadDotenv(): void {
@@ -30,6 +29,9 @@ export const CONFIG = {
   targetLeads: Number(process.env.TARGET_LEADS ?? 200),
   concurrency: Math.min(6, Number(process.env.SCRAPE_CONCURRENCY ?? 6)),
   smoke: process.env.SMOKE === "1",
+  // Strict drop policy: ignore TARGET_LEADS, ship only Invisalign-strong
+  // rows with verifiable owner contact (or active hiring signal).
+  qualityMode: process.env.QUALITY_MODE === "1",
   userAgent: `PulseLeadBot/1.0 (contact: ${process.env.CONTACT_EMAIL ?? "contact@example.com"})`,
   maxBytes: 2.5 * 1024 * 1024,
   minDelayMsPerDomain: 300,
@@ -41,9 +43,13 @@ export const CONFIG = {
   apolloKey: process.env.APOLLO_API_KEY ?? "",
   apolloCalibrationSampleSize: Number(process.env.APOLLO_CALIBRATION_SAMPLE_SIZE ?? 10),
 
-  // Google Drive (OAuth Desktop)
+  // Google Drive
   gdriveUpload: process.env.GDRIVE_UPLOAD === "1",
   gdriveFolderId: process.env.GDRIVE_FOLDER_ID ?? "",
+  // Service account JSON (preferred for CI / headless). When set, auth
+  // uses JWT instead of OAuth Desktop — no browser prompt.
+  gdriveServiceAccountJson: process.env.GDRIVE_SERVICE_ACCOUNT_JSON ?? "",
+  // OAuth Desktop fallback for local interactive auth.
   gdriveCredentialsPath:
     process.env.GDRIVE_CREDENTIALS_PATH ||
     resolve(SCRAPE_LEADS_DIR, ".gdrive", "credentials.json"),
