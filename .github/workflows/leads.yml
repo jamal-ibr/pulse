@@ -1,0 +1,61 @@
+name: Lead scrape + Drive upload
+
+# Discovery requires this workflow to live on the default branch (main).
+# The scraper code lives on `leads/invisalign-birmingham`, so the checkout
+# step pins to that ref explicitly.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch with scraper code to run'
+        required: true
+        default: 'leads/invisalign-birmingham'
+  schedule:
+    # 07:00 UTC every Monday (08:00 BST in British Summer Time).
+    - cron: '0 7 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout scraper code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || 'leads/invisalign-birmingham' }}
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run outreach pipeline
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+          COMPANIES_HOUSE_API_KEY: ${{ secrets.COMPANIES_HOUSE_API_KEY }}
+          APOLLO_API_KEY: ${{ secrets.APOLLO_API_KEY }}
+          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          GDRIVE_UPLOAD: '1'
+          QUALITY_MODE: '1'
+          CONTACT_EMAIL: pulse-leads@github-actions.local
+        run: npm run scrape:leads
+
+      - name: Archive CSV/JSON as artifact (backup)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outreach-leads-${{ github.run_number }}
+          path: |
+            data/outreach-*.csv
+            data/outreach-*.json
+            data/latest-outreach.json
+          retention-days: 30
+          if-no-files-found: warn
