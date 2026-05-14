@@ -28,10 +28,10 @@ export function StatCard({ value, label, className, index = 0 }: Props) {
       )}
     >
       <div className="relative z-10 flex flex-col gap-2">
-        <p className="text-3xl font-medium tracking-tight text-bone sm:text-4xl">
+        <p className="text-2xl font-medium leading-tight tracking-tight text-bone text-balance sm:text-[1.75rem]">
           {value}
         </p>
-        <p className="text-[0.92rem] leading-snug text-silver">{label}</p>
+        <p className="text-[0.92rem] leading-snug text-silver text-pretty">{label}</p>
       </div>
       <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-pulse/10 blur-3xl" />
     </motion.div>

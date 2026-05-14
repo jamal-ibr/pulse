@@ -41,8 +41,8 @@ export function Hero() {
               variants={itemVariants}
               className="heading-gradient text-hero font-medium tracking-tight text-balance"
             >
-              The revenue engine for modern{' '}
-              <span className="accent-gradient italic font-medium">practices.</span>
+              Revenue infrastructure for practices that take{' '}
+              <span className="accent-gradient italic font-medium">growth seriously.</span>
             </motion.h1>
 
             <motion.p
@@ -50,8 +50,8 @@ export function Hero() {
               className="max-w-xl text-lg leading-relaxed text-silver text-pretty sm:text-xl"
             >
               AI-powered systems that capture every enquiry, reactivate dormant leads, and
-              generate predictable new business. Built for service practices that take
-              revenue seriously.
+              generate predictable new business. Built for service practices ready to
+              scale.
             </motion.p>
 
             <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-4 pt-2">
@@ -69,7 +69,7 @@ export function Hero() {
             <div className="gradient-border relative flex flex-col gap-5 overflow-hidden rounded-2xl p-7">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-eyebrow uppercase text-pulse-bright/80">
-                  Live · 02:47 UTC
+                  Example flow
                 </span>
                 <span className="relative inline-flex h-2 w-2">
                   <span className="absolute inset-0 rounded-full bg-pulse-bright" />

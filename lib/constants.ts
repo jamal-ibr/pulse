@@ -82,16 +82,16 @@ export const PILLARS: Pillar[] = [
 
 export const STATS = [
   {
-    value: '£2–5k',
-    label: 'Average monthly revenue lost from missed enquiries',
+    value: 'Thousands lost monthly',
+    label: 'Estimated revenue leak from missed enquiries at a typical practice',
   },
   {
-    value: '60%',
-    label: 'Of enquiries arrive outside business hours',
+    value: 'Most arrive after hours',
+    label: 'Enquiries routinely land outside reception hours',
   },
   {
-    value: '5 min',
-    label: 'Industry response window before a lead goes cold',
+    value: 'Minutes, not hours',
+    label: 'Industry research shows leads cool fast without rapid response',
   },
 ] as const;
 
