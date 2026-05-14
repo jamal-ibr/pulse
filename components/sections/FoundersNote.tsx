@@ -15,9 +15,10 @@ export function FoundersNote() {
               <Eyebrow>Founder Note</Eyebrow>
               <p className="font-mono text-eyebrow uppercase text-silver/60">Jamal Ibrahim</p>
               <p className="text-sm text-silver">
-                Senior Solutions Architect & Financial Audit Strategist at EY.
-                Building AI infrastructure for enterprise clients by day. Building
-                Pulse for the practices that actually need it the rest of the time.
+                Senior Solutions Architect at a Big 4 professional services firm,
+                building automation and analytics systems for enterprise audit
+                engagements. Founder of Pulse, building revenue infrastructure
+                for service practices that take revenue seriously.
               </p>
               <LinkedinLink />
             </div>

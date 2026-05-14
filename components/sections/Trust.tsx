@@ -34,7 +34,7 @@ export function Trust() {
           <div className="flex flex-col gap-5">
             <Eyebrow>Built For Trust</Eyebrow>
             <h2 className="heading-gradient max-w-3xl text-3xl font-medium tracking-tight text-balance sm:text-4xl md:text-5xl">
-              Built for ambitious practices across the UK.
+              Built in the UK, for ambitious practices.
             </h2>
           </div>
         </Reveal>

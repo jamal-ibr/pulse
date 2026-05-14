@@ -66,9 +66,11 @@ export default function AboutPage() {
                   Jamal Ibrahim
                 </p>
                 <p className="text-sm text-silver">
-                  Senior Solutions Architect & Financial Audit Strategist at EY.
-                  Building enterprise AI systems by day. Building Pulse the rest
-                  of the time.
+                  Senior Solutions Architect at a Big 4 professional services
+                  firm, building automation and analytics systems for enterprise
+                  audit engagements. Founder of Pulse, building revenue
+                  infrastructure for service practices that take revenue
+                  seriously.
                 </p>
                 <LinkedinLink />
               </div>
