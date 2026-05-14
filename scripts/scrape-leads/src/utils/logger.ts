@@ -6,7 +6,7 @@ const LOG_DIR = resolve(ROOT, "logs");
 if (!existsSync(LOG_DIR)) mkdirSync(LOG_DIR, { recursive: true });
 const LOG_FILE = resolve(LOG_DIR, `scrape-${new Date().toISOString().slice(0, 10)}.log`);
 
-type Level = "info" | "warn" | "error" | "debug";
+type Level = "info" | "ok" | "warn" | "error" | "debug";
 
 function write(level: Level, msg: string, extra?: unknown): void {
   const stamp = new Date().toISOString();
@@ -29,6 +29,7 @@ function safeJson(v: unknown): string {
 
 export const log = {
   info: (m: string, x?: unknown) => write("info", m, x),
+  ok: (m: string, x?: unknown) => write("ok", m, x),
   warn: (m: string, x?: unknown) => write("warn", m, x),
   error: (m: string, x?: unknown) => write("error", m, x),
   debug: (m: string, x?: unknown) => {
