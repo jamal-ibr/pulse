@@ -1,5 +1,6 @@
 import { mkdirSync, existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import pLimit from "p-limit";
 import { CONFIG, LOCALITIES, OVERPASS_BBOX, ROOT } from "./config.js";
 import { log } from "./utils/logger.js";
@@ -19,15 +20,15 @@ import { invisalignScore, popularityScore, proximityScore, totalScore } from "./
 const DATA_DIR = resolve(ROOT, "data");
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
 
-interface SourceCounts { [k: string]: number; }
+export interface SourceCounts { [k: string]: number; }
 
-interface Phase1Result {
+export interface Phase1Result {
   raw: RawPlace[];
   counts: SourceCounts;
   blocked: string[];
 }
 
-async function phase1Discovery(args: {
+export async function phase1Discovery(args: {
   places_variants: string[];
   places_localities: typeof LOCALITIES;
   include_yell: boolean;
@@ -78,7 +79,7 @@ async function phase1Discovery(args: {
   return { raw, counts, blocked };
 }
 
-function phase2Dedupe(raw: RawPlace[]): Cluster[] {
+export function phase2Dedupe(raw: RawPlace[]): Cluster[] {
   log.info("PHASE 2: dedupe begin", { raw: raw.length });
   const filtered = raw.filter((r) => {
     const n = r.name.toLowerCase();
@@ -92,7 +93,7 @@ function phase2Dedupe(raw: RawPlace[]): Cluster[] {
   return clusters;
 }
 
-interface EnrichedCluster {
+export interface EnrichedCluster {
   cluster: Cluster;
   crawl: Awaited<ReturnType<typeof crawlSite>>;
   bestEmail?: { value: string; source_url: string };
@@ -104,7 +105,7 @@ interface EnrichedCluster {
   invisalignOnOwnSite: boolean;
 }
 
-async function phase3Crawl(clusters: Cluster[]): Promise<EnrichedCluster[]> {
+export async function phase3Crawl(clusters: Cluster[]): Promise<EnrichedCluster[]> {
   log.info("PHASE 3: website crawl begin", { candidates: clusters.length });
   const limit = pLimit(CONFIG.concurrency);
   let done = 0;
@@ -117,7 +118,6 @@ async function phase3Crawl(clusters: Cluster[]): Promise<EnrichedCluster[]> {
     if (!c.website) {
       return { cluster: c, crawl: null, invisalignMentions: 0, invisalignOnOwnSite: false };
     }
-    // Hard wall-clock guard: even if internal timeouts misbehave, we never hang the pipeline.
     const hardTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 120_000));
     const crawl = await Promise.race([crawlSite(c.website), hardTimeout]);
     if (!crawl) return { cluster: c, crawl: null, invisalignMentions: 0, invisalignOnOwnSite: false };
@@ -148,14 +148,14 @@ async function phase3Crawl(clusters: Cluster[]): Promise<EnrichedCluster[]> {
   return results;
 }
 
-interface FilteredCluster extends EnrichedCluster {
+export interface FilteredCluster extends EnrichedCluster {
   phone: string;
   phoneSource: string;
   email: string;
   emailSource: string;
 }
 
-function phase4Filter(enriched: EnrichedCluster[], relaxed: boolean): FilteredCluster[] {
+export function phase4Filter(enriched: EnrichedCluster[], relaxed: boolean): FilteredCluster[] {
   log.info("PHASE 4: filter begin", { relaxed, candidates: enriched.length });
   const out: FilteredCluster[] = [];
   for (const e of enriched) {
@@ -179,7 +179,7 @@ function phase4Filter(enriched: EnrichedCluster[], relaxed: boolean): FilteredCl
   return out;
 }
 
-async function phase5CompaniesHouse(filtered: FilteredCluster[], topN: number): Promise<Map<string, { companyNumber: string; directorName?: string; sourceUrl: string }>> {
+export async function phase5CompaniesHouse(filtered: FilteredCluster[], topN: number): Promise<Map<string, { companyNumber: string; directorName?: string; sourceUrl: string }>> {
   const out = new Map<string, { companyNumber: string; directorName?: string; sourceUrl: string }>();
   if (!CONFIG.companiesHouseKey) { log.info("PHASE 5: skipped (no CH key)"); return out; }
   const ranked = filtered
@@ -201,7 +201,7 @@ async function phase5CompaniesHouse(filtered: FilteredCluster[], topN: number): 
   return out;
 }
 
-function scoreFor(f: EnrichedCluster): { pop: number; prox: number; km: number; inv: number; total: number } {
+export function scoreFor(f: EnrichedCluster): { pop: number; prox: number; km: number; inv: number; total: number } {
   const pop = popularityScore(f.cluster.rating, f.cluster.reviewCount);
   const { score: prox, km } = proximityScore(f.cluster.lat, f.cluster.lng);
   const inv = invisalignScore(f.invisalignMentions);
@@ -209,7 +209,7 @@ function scoreFor(f: EnrichedCluster): { pop: number; prox: number; km: number; 
   return { pop, prox, km, inv, total };
 }
 
-function formatCHDirectorName(raw: string): string {
+export function formatCHDirectorName(raw: string): string {
   if (raw.includes(",")) {
     const [last, first] = raw.split(",").map((s) => s.trim());
     const tc = (s: string) => s.toLowerCase().replace(/(^|\s|-)([a-z])/g, (_, a, b) => a + b.toUpperCase());
@@ -218,7 +218,7 @@ function formatCHDirectorName(raw: string): string {
   return raw;
 }
 
-function buildLeads(filtered: FilteredCluster[], chMap: Map<string, { companyNumber: string; directorName?: string; sourceUrl: string }>): Lead[] {
+export function buildLeads(filtered: FilteredCluster[], chMap: Map<string, { companyNumber: string; directorName?: string; sourceUrl: string }>): Lead[] {
   const now = new Date().toISOString();
   return filtered.map((f): Lead => {
     const s = scoreFor(f);
@@ -274,7 +274,7 @@ function buildLeads(filtered: FilteredCluster[], chMap: Map<string, { companyNum
   .sort((a, b) => b.total_score - a.total_score);
 }
 
-const LEAD_COLUMNS: Array<keyof Lead> = [
+export const LEAD_COLUMNS: Array<keyof Lead> = [
   "name", "website", "phone", "email",
   "owner_name", "owner_title",
   "address", "postcode", "city", "lat", "lng",
@@ -420,7 +420,10 @@ async function main(): Promise<void> {
   console.log("=====================================\n");
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+if (isMain) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
