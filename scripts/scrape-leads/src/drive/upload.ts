@@ -2,6 +2,7 @@ import { createReadStream } from "node:fs";
 import { basename } from "node:path";
 import { getOAuthClient } from "./oauth.js";
 import { getServiceAccountAuth } from "./service-account.js";
+import { getRefreshTokenAuth } from "./oauth-refresh.js";
 import { CONFIG } from "../config.js";
 import { log } from "../utils/logger.js";
 
@@ -13,11 +14,18 @@ export interface DriveUploadResult {
 }
 
 async function pickAuth(): Promise<unknown> {
-  // Service account first — works headless in CI, no browser prompt.
+  // OAuth refresh token (PREFERRED for CI uploads to personal Drive).
+  // Uploads run as the real user, so files count against their quota and
+  // land in their actual Drive folder — no storageQuotaExceeded gotcha.
+  if (CONFIG.gdriveOauthRefreshToken) {
+    return getRefreshTokenAuth();
+  }
+  // Service account: only works with Workspace Shared Drives.
+  // Personal Drive uploads will fail with storageQuotaExceeded.
   if (CONFIG.gdriveServiceAccountJson) {
     return getServiceAccountAuth();
   }
-  // Fall back to OAuth Desktop for local interactive use.
+  // OAuth Desktop fallback for local interactive use.
   return getOAuthClient();
 }
 

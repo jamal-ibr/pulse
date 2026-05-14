@@ -29,8 +29,6 @@ export const CONFIG = {
   targetLeads: Number(process.env.TARGET_LEADS ?? 200),
   concurrency: Math.min(6, Number(process.env.SCRAPE_CONCURRENCY ?? 6)),
   smoke: process.env.SMOKE === "1",
-  // Strict drop policy: ignore TARGET_LEADS, ship only Invisalign-strong
-  // rows with verifiable owner contact (or active hiring signal).
   qualityMode: process.env.QUALITY_MODE === "1",
   userAgent: `PulseLeadBot/1.0 (contact: ${process.env.CONTACT_EMAIL ?? "contact@example.com"})`,
   maxBytes: 2.5 * 1024 * 1024,
@@ -46,8 +44,12 @@ export const CONFIG = {
   // Google Drive
   gdriveUpload: process.env.GDRIVE_UPLOAD === "1",
   gdriveFolderId: process.env.GDRIVE_FOLDER_ID ?? "",
-  // Service account JSON (preferred for CI / headless). When set, auth
-  // uses JWT instead of OAuth Desktop — no browser prompt.
+  // OAuth refresh token (PREFERRED): uploads run as the user, so they
+  // land in personal Drive without quota issues. Set all three to enable.
+  gdriveOauthClientId: process.env.GDRIVE_OAUTH_CLIENT_ID ?? "",
+  gdriveOauthClientSecret: process.env.GDRIVE_OAUTH_CLIENT_SECRET ?? "",
+  gdriveOauthRefreshToken: process.env.GDRIVE_OAUTH_REFRESH_TOKEN ?? "",
+  // Service account (only works with Workspace Shared Drives).
   gdriveServiceAccountJson: process.env.GDRIVE_SERVICE_ACCOUNT_JSON ?? "",
   // OAuth Desktop fallback for local interactive auth.
   gdriveCredentialsPath:
