@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-// Compiled path: <project>/scripts/scrape-leads/dist/config.js → go up 3 levels to project root
+// Compiled path: <project>/scripts/scrape-leads/dist/config.js → up 3 levels to project root
 export const ROOT = resolve(__dirname, "..", "..", "..");
 
 function loadDotenv(): void {
@@ -21,6 +21,8 @@ function loadDotenv(): void {
 }
 loadDotenv();
 
+const SCRAPE_LEADS_DIR = resolve(ROOT, "scripts", "scrape-leads");
+
 export const CONFIG = {
   contactEmail: process.env.CONTACT_EMAIL ?? "contact@example.com",
   googlePlacesKey: process.env.GOOGLE_PLACES_API_KEY ?? "",
@@ -34,6 +36,20 @@ export const CONFIG = {
   httpTimeoutMs: 12_000,
   siteCrawlTimeoutMs: 90_000,
   birminghamCentre: { lat: 52.4862, lng: -1.8904 },
+
+  // Apollo (Search = free, Enrichment = credits)
+  apolloKey: process.env.APOLLO_API_KEY ?? "",
+  apolloCalibrationSampleSize: Number(process.env.APOLLO_CALIBRATION_SAMPLE_SIZE ?? 10),
+
+  // Google Drive (OAuth Desktop)
+  gdriveUpload: process.env.GDRIVE_UPLOAD === "1",
+  gdriveFolderId: process.env.GDRIVE_FOLDER_ID ?? "",
+  gdriveCredentialsPath:
+    process.env.GDRIVE_CREDENTIALS_PATH ||
+    resolve(SCRAPE_LEADS_DIR, ".gdrive", "credentials.json"),
+  gdriveTokenPath:
+    process.env.GDRIVE_TOKEN_PATH ||
+    resolve(SCRAPE_LEADS_DIR, ".gdrive", "token.json"),
 };
 
 export const LOCALITIES: Array<{ name: string; lat: number; lng: number }> = [

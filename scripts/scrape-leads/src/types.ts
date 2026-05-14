@@ -5,7 +5,8 @@ export type SourceName =
   | "yell"
   | "three_best_rated"
   | "website"
-  | "companies_house";
+  | "companies_house"
+  | "apollo";
 
 export interface RawPlace {
   source: SourceName;
@@ -66,4 +67,58 @@ export interface Lead {
   companies_house_number: string;
   fetched_at: string;
   notes: string;
+}
+
+// ─── Outreach pipeline types ───────────────────────────────────────
+export type Confidence = "high" | "medium" | "low" | "none";
+export type ApolloDirectPhoneFlag = "Yes" | "Maybe" | "No" | "Unknown";
+export type InvisalignStrength = "strong" | "medium" | "weak";
+
+export interface OwnerContact {
+  email: string;
+  emailConfidence: Confidence;
+  emailMethod: "scraped_name_match" | "scraped_same_domain" | "pattern" | "none";
+  emailSourceUrl: string;
+  directPhone: string;
+  directPhoneConfidence: Confidence;
+  directPhoneMethod: "scraped_near_owner" | "scraped_generic" | "none";
+  directPhoneSourceUrl: string;
+  practicePhone: string;
+  practicePhoneSourceUrl: string;
+  apolloHasDirectPhone: ApolloDirectPhoneFlag;
+  apolloPersonId?: string;
+}
+
+export interface HiringSignal {
+  isHiringReceptionist: boolean;
+  apolloOpenRoles: string[];
+  sourceUrl: string;
+}
+
+export interface OutreachLead {
+  rank: number;
+  practice_name: string;
+  owner_name: string;
+  owner_title: string;
+  owner_email: string;
+  owner_email_confidence: Confidence;
+  practice_phone: string;
+  direct_phone: string;
+  direct_phone_confidence: Confidence;
+  apollo_has_direct_phone: ApolloDirectPhoneFlag;
+  hiring_receptionist: "yes" | "no" | "unknown";
+  website: string;
+  city: string;
+  postcode: string;
+  invisalign_strength: InvisalignStrength;
+  fit_score: number;          // 0-10
+  contact_confidence: number; // 0-10
+  rating: number | "";
+  review_count: number | "";
+  notes: string;
+  // Provenance — every claim traceable
+  owner_source_url: string;
+  email_source_url: string;
+  direct_phone_source_url: string;
+  hiring_source_url: string;
 }

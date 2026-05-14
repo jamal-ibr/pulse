@@ -1,17 +1,21 @@
 {
   "name": "pulse-lead-scraper",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Invisalign-focused dental/ortho lead scraper for the West Midlands (Pulse agency).",
+  "description": "Invisalign-focused dental/ortho outreach pipeline for the West Midlands (Pulse agency).",
   "scripts": {
     "build": "tsc -p scripts/scrape-leads/tsconfig.json",
-    "scrape:leads": "npm run build && node scripts/scrape-leads/dist/index.js",
+    "scrape:leads": "npm run build && node scripts/scrape-leads/dist/outreach.js",
+    "scrape:leads:raw": "npm run build && node scripts/scrape-leads/dist/index.js",
     "scrape:leads:smoke": "TARGET_LEADS=20 SMOKE=1 npm run scrape:leads",
-    "scrape:leads:verify": "node scripts/scrape-leads/dist/verify.js"
+    "scrape:leads:verify": "node scripts/scrape-leads/dist/verify.js",
+    "leads:calibrate": "npm run build && node scripts/scrape-leads/dist/calibration.js",
+    "leads:drive": "npm run build && node scripts/scrape-leads/dist/drive/upload-latest.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
+    "googleapis": "^144.0.0",
     "p-limit": "^6.1.0"
   },
   "devDependencies": {
