@@ -61,7 +61,7 @@ Static site — deploy `dist/` to Vercel, Netlify, or Cloudflare Pages.
 
 ## Pre-launch checklist
 
-- [ ] Confirm or replace email `hello@jamalibrahim.com`
+- [ ] Confirm or replace email `jamal.ibrx@gmail.com`
 - [ ] Confirm LinkedIn / GitHub slugs in `profile.json`
 - [ ] Confirm stats are defensible (1,000+ / 800+ / 20+)
 - [ ] Rasterise `public/og-image.svg` to `og-image.png` (1200x630) and
