@@ -17,12 +17,21 @@ import {
 } from "./index.js";
 import { domainOf } from "./utils/normalise.js";
 import { popularityScore, proximityScore } from "./scraper/score.js";
-import { searchOwners, getApolloStats, type ApolloPerson } from "./sources/apollo.js";
+import {
+  searchOwners,
+  getApolloStats,
+  setMaxApolloCredits,
+  getApolloCreditsUsed,
+  getApolloMaxCredits,
+  type ApolloPerson,
+} from "./sources/apollo.js";
 import { enrichOwnerContact, type OwnerEnrichmentResult } from "./scraper/owner-enrich.js";
 import { detectHiring } from "./scraper/hiring.js";
 import { computeFitScore, computeContactConfidence } from "./scoring/fit.js";
 import { writeOutreachCsv } from "./utils/outreach-csv.js";
-import type { ApolloDirectPhoneFlag, HiringSignal, InvisalignStrength, OutreachLead } from "./types.js";
+import { enrichDecisionMakerContacts, type UpgradeReport, type LeadRow } from "./upgrades/decision-maker.js";
+import { getCacheStats } from "./utils/apollo-cache.js";
+import type { ApolloDirectPhoneFlag, Confidence, HiringSignal, InvisalignStrength, OutreachLead } from "./types.js";
 
 const DATA_DIR = resolve(ROOT, "data");
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
@@ -49,6 +58,15 @@ function extractCity(address: string): string {
   );
 }
 
+function leadToRow(l: OutreachLead): LeadRow {
+  const o: LeadRow = {};
+  for (const k of Object.keys(l) as Array<keyof OutreachLead>) {
+    const v = (l as unknown as Record<string, unknown>)[k as string];
+    o[k as string] = v === undefined || v === null ? "" : String(v);
+  }
+  return o;
+}
+
 interface FullyEnriched {
   f: FilteredCluster;
   owner_name: string;
@@ -66,7 +84,10 @@ async function main(): Promise<void> {
   const runTag = CONFIG.smoke ? "outreach-smoke" : CONFIG.qualityMode ? "outreach-quality" : "outreach-full";
   log.info("outreach pipeline starting", { target, runTag, qualityMode: CONFIG.qualityMode });
 
-  // ─── Phases 1–5: reuse the existing pipeline (discovery → CH) ─────────
+  // Apply credit cap from env (per-run, fail-loud on exceed inside Apollo client)
+  setMaxApolloCredits(Number(process.env.MAX_APOLLO_CREDITS_PER_RUN ?? 100));
+
+  // ─── Phases 1–5: existing pipeline (discovery → CH) ────────────────────
   const placesVariants = ["Invisalign dentist", "orthodontist Invisalign"];
   const bbox = { ...OVERPASS_BBOX };
   let localitiesRun = [...LOCALITIES];
@@ -202,10 +223,7 @@ async function main(): Promise<void> {
     const apolloConfirmsDirect = e.apolloFlag === "Yes";
     const isHiring = e.hiring.isHiringReceptionist;
 
-    // ─── DROP POLICY ──────────────────────────────────────────────
     if (CONFIG.qualityMode) {
-      // Strict: hiring is a free pass (active pain). Otherwise must be
-      // Invisalign-STRONG AND have a real contact channel (not pattern guess).
       const passes =
         isHiring ||
         (invisalignStrength === "strong" && (hasScrapedEmail || apolloConfirmsDirect || hasDirectPhone));
@@ -214,7 +232,6 @@ async function main(): Promise<void> {
         continue;
       }
     } else {
-      // Looser default: need any contact route at all.
       if (!hasOwnerEmail && !hasDirectPhone && !apolloConfirmsDirect) {
         droppedNoContact++;
         continue;
@@ -271,11 +288,16 @@ async function main(): Promise<void> {
       email_source_url: e.homegrown.emailSourceUrl,
       direct_phone_source_url: e.homegrown.directPhoneSourceUrl,
       hiring_source_url: e.hiring.sourceUrl,
+      // Upgrade columns initialised — populated in Phase 10.5 below.
+      decision_maker_direct_phone: "",
+      decision_maker_phone_confidence: "",
+      apollo_person_id: e.apolloPersonId ?? "",
+      phone_fallback_strategy: "",
+      email_extraction_error: "",
+      email_local_part_classification: "",
     });
   }
 
-  // Rank: fit_score primary, contact_confidence secondary, rating tiebreak.
-  // Quality mode: ship ALL passing leads. Default mode: cap at TARGET_LEADS.
   const sorted = allLeads
     .sort((a, b) => {
       if (b.fit_score !== a.fit_score) return b.fit_score - a.fit_score;
@@ -288,6 +310,49 @@ async function main(): Promise<void> {
     });
   const ranked = (CONFIG.qualityMode ? sorted : sorted.slice(0, target)).map((l, i) => ({ ...l, rank: i + 1 }));
 
+  // ─── Phase 10.5: Decision-maker upgrade (direct phone + email cleanup) ───
+  const enrichMax = Number(process.env.MAX_ENRICH ?? 20);
+  const phoneOnlyMode = process.env.PHONE_ONLY === "1";
+  let upgradeReport: UpgradeReport | null = null;
+  if (CONFIG.apolloKey) {
+    log.info(`PHASE 10.5: decision-maker upgrade (max ${enrichMax}, phoneOnly=${phoneOnlyMode})`);
+    const rows: LeadRow[] = ranked.map(leadToRow);
+    try {
+      upgradeReport = await enrichDecisionMakerContacts(rows, {
+        maxEnrich: enrichMax,
+        phoneOnly: phoneOnlyMode,
+      });
+      // Reflect mutations back into the typed ranked array.
+      for (let i = 0; i < ranked.length; i++) {
+        const r = rows[i];
+        ranked[i].decision_maker_direct_phone = r.decision_maker_direct_phone;
+        ranked[i].decision_maker_phone_confidence =
+          (r.decision_maker_phone_confidence as OutreachLead["decision_maker_phone_confidence"]) ?? "";
+        ranked[i].apollo_person_id = r.apollo_person_id;
+        ranked[i].phone_fallback_strategy = r.phone_fallback_strategy;
+        ranked[i].email_extraction_error = r.email_extraction_error;
+        ranked[i].email_local_part_classification =
+          (r.email_local_part_classification as OutreachLead["email_local_part_classification"]) ?? "";
+        // Email cleanup may have overwritten owner_email + confidence.
+        if (r.owner_email !== undefined) ranked[i].owner_email = r.owner_email;
+        if (r.owner_email_confidence) {
+          ranked[i].owner_email_confidence = r.owner_email_confidence as Confidence;
+        }
+        if (r.email_source_url !== undefined) ranked[i].email_source_url = r.email_source_url;
+      }
+      log.info("PHASE 10.5: end", {
+        phonesFound: upgradeReport.phonesFound,
+        emailsRejected: upgradeReport.emailsRejected,
+        emailsFixed: upgradeReport.emailsFixedByScrape,
+        creditsUsed: getApolloCreditsUsed(),
+      });
+    } catch (e) {
+      log.error(`PHASE 10.5 halted: ${(e as Error).message}`);
+    }
+  } else {
+    log.warn("PHASE 10.5: skipped (no APOLLO_API_KEY)");
+  }
+
   // ─── Phase 11: Write outputs ─────────────────────────────────────────
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const csvPath = resolve(DATA_DIR, `outreach-${runTag}-${stamp}.csv`);
@@ -296,6 +361,7 @@ async function main(): Promise<void> {
 
   const apolloStats = getApolloStats();
   const hiringCount = fullyEnriched.filter((e) => e.hiring.isHiringReceptionist).length;
+  const cacheStats = getCacheStats();
   const summary = {
     generatedAt: new Date().toISOString(),
     qualityMode: CONFIG.qualityMode,
@@ -313,6 +379,8 @@ async function main(): Promise<void> {
       delivered: ranked.length,
     },
     apollo: apolloStats,
+    apolloCache: cacheStats,
+    decisionMakerUpgrade: upgradeReport,
     leads: ranked,
   };
   writeFileSync(jsonPath, JSON.stringify(summary, null, 2), "utf8");
@@ -323,7 +391,7 @@ async function main(): Promise<void> {
 
   log.ok(`outreach DONE: ${ranked.length} leads → ${csvPath} (${summary.runMins}m)`);
 
-  // ─── Phase 12: Optional Drive upload ─────────────────────────────────
+  // ─── Phase 12: Optional Drive upload ──────────────────────────────────
   let driveResult: { csvUrl?: string; sheetUrl?: string } | null = null;
   if (CONFIG.gdriveUpload) {
     try {
@@ -348,16 +416,40 @@ async function main(): Promise<void> {
   console.log(
     `Dropped        : ${summary.funnel.droppedQuality} quality-fail, ${summary.funnel.droppedNoContact} no-contact`,
   );
-  console.log(`CSV            : ${csvPath}`);
+  if (upgradeReport) {
+    console.log(`\n--- Decision-maker upgrade (top ${enrichMax}) ---`);
+    console.log(`Phones found       : ${upgradeReport.phonesFound}`);
+    console.log(`Phones not found   : ${upgradeReport.phonesNotFound}`);
+    if (!phoneOnlyMode) {
+      console.log(`Emails rejected    : ${upgradeReport.emailsRejected}`);
+      console.log(`Emails fixed       : ${upgradeReport.emailsFixedByScrape}`);
+      console.log(`Emails for review  : ${upgradeReport.emailsNeedingReview}`);
+    }
+    console.log(`Apollo credits     : ${getApolloCreditsUsed()} / ${getApolloMaxCredits()}`);
+    console.log(`Cache hits         : ${upgradeReport.cacheHits} (cache size: ${cacheStats.entries})`);
+    if (upgradeReport.contradictions.length > 0) {
+      console.log(`\nContradictions (${upgradeReport.contradictions.length}):`);
+      for (const c of upgradeReport.contradictions) {
+        console.log(`  ${c.practice} :: ${c.field} :: have="${c.existing}" apollo="${c.apollo}"`);
+      }
+    }
+  }
+  console.log(`\nCSV            : ${csvPath}`);
   if (driveResult?.sheetUrl) console.log(`Google Sheet   : ${driveResult.sheetUrl}`);
   console.log("\nTop 10 by fit_score:");
   for (const l of ranked.slice(0, 10)) {
-    const dir = l.direct_phone || (l.apollo_has_direct_phone === "Yes" ? "(Apollo: direct dial available)" : "(reception only)");
-    const email = l.owner_email || "(no owner email)";
+    const direct = l.decision_maker_direct_phone
+      ? `${l.decision_maker_direct_phone} (${l.decision_maker_phone_confidence})`
+      : l.direct_phone ||
+        (l.apollo_has_direct_phone === "Yes" ? "(Apollo: direct dial available)" : "(reception only)");
+    const email =
+      l.owner_email === "needs_manual_review"
+        ? `[REVIEW] was: ${l.email_extraction_error}`
+        : l.owner_email || "(no owner email)";
     const hire = l.hiring_receptionist === "yes" ? "  [HIRING]" : "";
     console.log(`  #${String(l.rank).padStart(3)} fit=${l.fit_score} conf=${l.contact_confidence}  ${l.practice_name}${hire}`);
     console.log(`        ${l.owner_name || "(no owner)"}${l.owner_title ? " — " + l.owner_title : ""}`);
-    console.log(`        ${email}  ${dir}`);
+    console.log(`        ${email}  ${direct}`);
   }
   console.log("========================================\n");
 }

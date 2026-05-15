@@ -111,8 +111,8 @@ export interface OutreachLead {
   city: string;
   postcode: string;
   invisalign_strength: InvisalignStrength;
-  fit_score: number;          // 0-10
-  contact_confidence: number; // 0-10
+  fit_score: number;
+  contact_confidence: number;
   rating: number | "";
   review_count: number | "";
   notes: string;
@@ -121,4 +121,14 @@ export interface OutreachLead {
   email_source_url: string;
   direct_phone_source_url: string;
   hiring_source_url: string;
+
+  // ─── Decision-maker upgrade columns (additive) ───────────────────────
+  // Populated by the decision-maker upgrade for top-N leads by fit_score.
+  // Empty string when the upgrade did not enrich this row.
+  decision_maker_direct_phone?: string;
+  decision_maker_phone_confidence?: "high" | "medium" | "low" | "not_found" | "";
+  apollo_person_id?: string;
+  phone_fallback_strategy?: string;
+  email_extraction_error?: string;
+  email_local_part_classification?: "name_format" | "role_inbox" | "other" | "";
 }

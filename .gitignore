@@ -9,3 +9,4 @@ scripts/scrape-leads/dist/
 scripts/scrape-leads/.gdrive/
 data/*.csv
 data/*.json
+data/.apollo-cache/
