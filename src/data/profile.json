@@ -5,7 +5,6 @@
   "year": "2026",
   "role": "Senior Solutions Architect, EY",
   "focus": "Agentic AI, Automation, Enterprise Data",
-  "faith": "Bismillah, Alhamdulillah",
   "edition": "VOL. I · ISSUE 01 · BIRMINGHAM, UK · 2026",
   "lede": "I design and build agentic AI systems. Senior Solutions Architect at EY, working at the intersection of AI, automation, and enterprise data.",
   "ledeAccent": "agentic AI systems",
@@ -51,18 +50,18 @@
       "status": "Live demo available on request"
     },
     {
-      "title": "Audit Workflow Automation (EY, anonymised)",
+      "title": "Enterprise Audit Automation",
       "kind": "Production",
-      "description": "End-to-end automation across multiple FTSE 100 audit engagements. Reduced manual data preparation across 30+ teams.",
+      "description": "Turned slow, manual data preparation into a repeatable automated pipeline used across large audit engagements. The kind of work that quietly removes thousands of hours of effort a year.",
       "stack": ["Alteryx", "Power BI", "Power Query", "M", "DAX"],
-      "status": "1,000+ hours saved per year, 800+ business units"
+      "status": "Significant time saved at scale"
     },
     {
-      "title": "FTSE 100 Tender Pitch Dashboards (EY, anonymised)",
+      "title": "Tender & Pitch Analytics",
       "kind": "Production",
-      "description": "Power BI work used in tender pitches for major listed clients.",
+      "description": "Data and analytics work that supports competitive tenders and pitches for major clients. Details stay confidential, the impact does not.",
       "stack": ["Power BI", "DAX", "Data modelling"],
-      "status": "Internal"
+      "status": "Confidential"
     },
     {
       "title": "This Site",
@@ -103,15 +102,15 @@
         "body": "Enterprise AI strategy. Specifically, the intersection of AI capability, regulatory governance, and commercial outcomes. The kind of work that sits between the partners who own the relationship and the engineers who build the system."
       },
       {
-        "heading": "Where I'm From",
-        "body": "Birmingham. Alum Rock specifically. Faith-anchored. Football, Muay Thai, running. Family matters. Community matters."
+        "heading": "Outside Work",
+        "body": "Born and based in Birmingham. Away from the screen I play a lot of sport, get outdoors whenever I can, and travel to experience new places and cultures. I like trying things I have not done before, it tends to be where the most interesting ideas come from. Family and community matter to me."
       }
     ],
     "beliefs": [
       "Strategy without the ability to build is theatre.",
       "Building without strategy is fragile.",
       "Quiet output beats loud positioning, eventually.",
-      "Bismillah at the start, alhamdulillah at the end."
+      "Stay curious. The best work comes from trying things you have not done before."
     ]
   },
   "stackGroups": [
