@@ -2,6 +2,10 @@ node_modules
 .next
 out
 coverage
+
+# Astro
+dist/
+.astro/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

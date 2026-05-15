@@ -1,0 +1,52 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import profile from '../data/profile.json';
+
+const c = profile.contact;
+---
+
+<BaseLayout
+  title="Contact — Jamal Ibrahim"
+  description="Get in touch about AI consulting, mentorship, speaking, or collaboration."
+  path="/contact"
+>
+  <section class="hero wrap contact-hero">
+    <p class="eyebrow">Contact</p>
+    <h1>Let's <em>talk</em><span class="dot">.</span></h1>
+    <p class="lede">
+      Working on something interesting at the intersection of AI, strategy, or
+      enterprise transformation? I'd like to hear about it.
+    </p>
+
+    <div class="contact-rows">
+      <a class="contact-row" href={`mailto:${c.email}`}>
+        <span class="clabel">Email</span>
+        <span class="cvalue">{c.email}</span>
+      </a>
+      <a
+        class="contact-row"
+        href={c.linkedin.url}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="clabel">LinkedIn</span>
+        <span class="cvalue">{c.linkedin.label}</span>
+      </a>
+      <a
+        class="contact-row"
+        href={c.github.url}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="clabel">GitHub</span>
+        <span class="cvalue">{c.github.label}</span>
+      </a>
+    </div>
+
+    <p class="availability">
+      Currently open to: AI consulting conversations, mentorship requests,
+      speaking, collaboration. Not open to: cold sales, unpaid "pick your brain"
+      calls.
+    </p>
+  </section>
+</BaseLayout>

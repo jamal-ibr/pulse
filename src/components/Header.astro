@@ -1,0 +1,76 @@
+---
+import profile from '../data/profile.json';
+const { path = '/' } = Astro.props;
+
+const links = [
+  { href: '/', label: 'home', file: 'home.tsx' },
+  { href: '/portfolio', label: 'portfolio', file: 'portfolio.tsx' },
+  { href: '/about', label: 'about', file: 'about.tsx' },
+  { href: '/contact', label: 'contact', file: 'contact.tsx' },
+];
+
+const isCurrent = (href) =>
+  href === '/' ? path === '/' : path.startsWith(href);
+---
+
+<!-- Print masthead -->
+<div class="masthead" aria-hidden="true">
+  <div class="title">The Jamal Ibrahim</div>
+  <div class="edition">{profile.edition}</div>
+</div>
+
+<header class="site-header">
+  <!-- Code terminal prompt -->
+  <div class="term-prompt" aria-hidden="true">
+    <span class="u">jamal@birmingham</span>:<span class="c">~</span>$ whoami
+  </div>
+
+  <nav class="nav" aria-label="Primary">
+    <a href="/" class="wordmark">{profile.wordmark}</a>
+
+    <div class="nav-links">
+      {
+        links.map((l) => (
+          <a href={l.href} aria-current={isCurrent(l.href) ? 'page' : undefined}>
+            {l.label}
+          </a>
+        ))
+      }
+    </div>
+
+    <div
+      class="theme-switch"
+      role="group"
+      aria-label="Theme switcher"
+    >
+      <button type="button" data-theme="editorial" aria-pressed="true">
+        Editorial
+      </button>
+      <button type="button" data-theme="code" aria-pressed="false">
+        Code
+      </button>
+      <button type="button" data-theme="print" aria-pressed="false">
+        Print
+      </button>
+    </div>
+  </nav>
+</header>
+
+<!-- Code file-tree rail -->
+<nav class="filetree" aria-label="File navigation">
+  <div class="root">~/jamal</div>
+  <ul>
+    {
+      links.map((l) => (
+        <li>
+          <a
+            href={l.href}
+            aria-current={isCurrent(l.href) ? 'page' : undefined}
+          >
+            {l.file}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>

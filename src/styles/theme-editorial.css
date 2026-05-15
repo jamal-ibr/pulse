@@ -1,0 +1,32 @@
+/* ============================================================
+   Theme: Editorial (default)
+   The refined operator. Dark, warm, italic gold accents.
+   Most tokens live in global.css :root. This file holds the
+   editorial-only flourishes.
+   ============================================================ */
+
+html.theme-editorial body {
+  letter-spacing: 0.005em;
+}
+
+html.theme-editorial .texture {
+  display: block;
+}
+
+html.theme-editorial h1,
+html.theme-editorial h2,
+html.theme-editorial .lead-para {
+  font-optical-sizing: auto;
+}
+
+html.theme-editorial .hero h1 {
+  font-style: italic;
+}
+
+html.theme-editorial .wordmark {
+  font-style: italic;
+}
+
+html.theme-editorial .site-footer .blessing {
+  font-style: italic;
+}

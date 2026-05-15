@@ -1,0 +1,75 @@
+---
+import { ViewTransitions } from 'astro:transitions';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+
+const {
+  title = 'Jamal Ibrahim',
+  description = 'Jamal Ibrahim designs and builds agentic AI systems. Senior Solutions Architect at EY, working at the intersection of AI, automation, and enterprise data.',
+  path = '/',
+} = Astro.props;
+
+const site = 'https://jamalibrahim.com';
+const canonical = new URL(path, site).href;
+const ogImage = new URL('/og-image.svg', site).href;
+---
+
+<!doctype html>
+<html lang="en" class="theme-editorial">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Jamal Ibrahim" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&family=Lora:wght@400;500;600&display=swap"
+    />
+
+    <ViewTransitions />
+
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('jamal-theme');
+          var valid = ['editorial', 'code', 'print'];
+          if (!t || valid.indexOf(t) === -1) t = 'editorial';
+          var r = document.documentElement;
+          valid.forEach(function (x) {
+            r.classList.remove('theme-' + x);
+          });
+          r.classList.add('theme-' + t);
+          r.setAttribute('data-theme', t);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="texture" aria-hidden="true"></div>
+    <Header path={path} />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+    <script src="../scripts/theme.js"></script>
+  </body>
+</html>
