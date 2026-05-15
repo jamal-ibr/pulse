@@ -4,7 +4,6 @@ import { log } from "../utils/logger.js";
 const API_BASE = "https://api.apollo.io/api/v1";
 
 // Apollo's documented limit: 600 People Search requests per hour.
-// We pace ourselves to ~553/hr (one every 6.5s) to keep safety headroom.
 const MIN_GAP_MS = 6_500;
 const SAFETY_CAP_PER_HOUR = 580;
 
@@ -14,8 +13,32 @@ let hourStart = Date.now();
 let totalRequests = 0;
 const totalByType: Record<string, number> = {};
 
-export function getApolloStats(): { totalRequests: number; byType: Record<string, number>; requestsThisHour: number } {
-  return { totalRequests, byType: { ...totalByType }, requestsThisHour };
+// ─── Credit budget (paid /people/match with reveal_*) ───────────────────
+let creditsUsed = 0;
+let maxCredits = Number(process.env.MAX_APOLLO_CREDITS_PER_RUN ?? 100);
+
+export function setMaxApolloCredits(n: number): void {
+  maxCredits = n;
+}
+
+export function getApolloCreditsUsed(): number {
+  return creditsUsed;
+}
+
+export function getApolloMaxCredits(): number {
+  return maxCredits;
+}
+
+function assertCreditBudget(): void {
+  if (creditsUsed >= maxCredits) {
+    throw new Error(
+      `MAX_APOLLO_CREDITS_PER_RUN exceeded: ${creditsUsed}/${maxCredits} credits already used. Halting to protect cost. Raise the env var or rerun with --max-enrich lowered.`,
+    );
+  }
+}
+
+export function getApolloStats(): { totalRequests: number; byType: Record<string, number>; requestsThisHour: number; creditsUsed: number; maxCredits: number } {
+  return { totalRequests, byType: { ...totalByType }, requestsThisHour, creditsUsed, maxCredits };
 }
 
 async function rateLimit(): Promise<void> {
@@ -76,7 +99,7 @@ export interface ApolloPerson {
   last_name_obfuscated?: string;
   title?: string | null;
   has_email: boolean;
-  has_direct_phone: string; // "Yes" | "Maybe: please request..." | etc.
+  has_direct_phone: string;
   organization?: { name?: string; has_phone?: boolean };
 }
 
@@ -86,8 +109,7 @@ interface PeopleSearchResponse {
 }
 
 /**
- * Identify owner-level people at a practice by company domain.
- * FREE — People Search does not consume credits per Apollo docs.
+ * Identify owner-level people at a practice by company domain. FREE.
  */
 export async function searchOwners(opts: { domain: string }): Promise<ApolloPerson[]> {
   if (!opts.domain) return [];
@@ -118,21 +140,15 @@ export async function searchOwners(opts: { domain: string }): Promise<ApolloPers
 }
 
 /**
- * Detect whether a practice is actively hiring receptionists or similar
- * front-of-house roles via Apollo's q_organization_job_titles filter.
- * FREE.
+ * Hiring-receptionist signal via Apollo's job-title filter. FREE.
  */
 export async function checkHiringReceptionist(opts: { domain: string }): Promise<{ hiring: boolean; openRoles: string[]; totalEntries: number }> {
   if (!opts.domain) return { hiring: false, openRoles: [], totalEntries: 0 };
   const params = {
     q_organization_domains_list: [opts.domain],
     q_organization_job_titles: [
-      "receptionist",
-      "dental receptionist",
-      "front of house",
-      "practice receptionist",
-      "patient coordinator",
-      "treatment coordinator",
+      "receptionist", "dental receptionist", "front of house",
+      "practice receptionist", "patient coordinator", "treatment coordinator",
     ],
     page: 1,
     per_page: 1,
@@ -151,36 +167,178 @@ export interface EnrichedPersonResult {
   id: string;
   first_name?: string;
   last_name?: string;
+  name?: string;
   email?: string;
-  phone_numbers?: Array<{ raw_number?: string; sanitized_number?: string; type?: string }>;
+  linkedin_url?: string;
+  phone_numbers?: Array<{ raw_number?: string; sanitized_number?: string; type?: string; status?: string }>;
   organization?: { name?: string; website_url?: string };
   raw: unknown;
 }
 
 /**
- * Enrich a person to reveal direct phone / email.
- * CALIBRATION-ONLY — burns credits. Used by `npm run leads:calibrate` to
- * verify that our homegrown owner enrichment is close to Apollo's truth.
+ * Enrich a person to reveal direct phone / email. CONSUMES 1 CREDIT when
+ * Apollo finds a match (no credit if no match). Respects MAX_APOLLO_CREDITS_PER_RUN.
  */
 export async function enrichPerson(opts: { id: string; revealPhone: boolean; revealEmail: boolean }): Promise<EnrichedPersonResult | null> {
+  if (opts.revealPhone || opts.revealEmail) assertCreditBudget();
   const params: Record<string, unknown> = { id: opts.id };
   if (opts.revealPhone) params.reveal_phone_number = true;
   if (opts.revealEmail) params.reveal_personal_emails = true;
   try {
     const data = (await apolloRequest("/people/match", params, "enrichPerson")) as { person?: Record<string, unknown> } | undefined;
     const p = (data?.person ?? data) as Record<string, unknown> | undefined;
-    if (!p) return null;
-    return {
-      id: String(p.id ?? opts.id),
-      first_name: p.first_name as string | undefined,
-      last_name: p.last_name as string | undefined,
-      email: p.email as string | undefined,
-      phone_numbers: p.phone_numbers as EnrichedPersonResult["phone_numbers"],
-      organization: p.organization as EnrichedPersonResult["organization"],
-      raw: p,
-    };
+    if (!p || !p.id) return null;
+    if (opts.revealPhone || opts.revealEmail) creditsUsed++;
+    return toEnrichedPerson(p, opts.id);
   } catch (e) {
     log.warn(`apollo enrichPerson failed for ${opts.id}: ${(e as Error).message}`);
     return null;
   }
+}
+
+/**
+ * Match + enrich a person by NAME + (domain OR organization name).
+ * Apollo only charges a credit when it finds a match.
+ */
+export async function matchAndEnrichByName(opts: {
+  firstName: string;
+  lastName: string;
+  domain?: string;
+  organizationName?: string;
+  revealPhone: boolean;
+  revealEmail: boolean;
+}): Promise<EnrichedPersonResult | null> {
+  if (!opts.firstName && !opts.lastName) return null;
+  if (opts.revealPhone || opts.revealEmail) assertCreditBudget();
+
+  const params: Record<string, unknown> = {};
+  if (opts.firstName) params.first_name = opts.firstName;
+  if (opts.lastName) params.last_name = opts.lastName;
+  if (opts.domain) params.domain = opts.domain;
+  if (opts.organizationName) params.organization_name = opts.organizationName;
+  if (opts.revealPhone) params.reveal_phone_number = true;
+  if (opts.revealEmail) params.reveal_personal_emails = true;
+
+  try {
+    const data = (await apolloRequest("/people/match", params, "matchByName")) as { person?: Record<string, unknown> } | undefined;
+    const p = (data?.person ?? data) as Record<string, unknown> | undefined;
+    if (!p || !p.id) return null;
+    if (opts.revealPhone || opts.revealEmail) creditsUsed++;
+    return toEnrichedPerson(p);
+  } catch (e) {
+    log.warn(`apollo matchAndEnrichByName failed for ${opts.firstName} ${opts.lastName}: ${(e as Error).message}`);
+    return null;
+  }
+}
+
+/**
+ * Search by name + city (no domain). Returns an ApolloPerson candidate
+ * to feed into enrichPerson() if we want to pay for direct contact data.
+ * FREE.
+ */
+export async function searchPersonByNameAndCity(opts: {
+  firstName: string;
+  lastName: string;
+  city: string;
+}): Promise<ApolloPerson | null> {
+  if (!opts.firstName || !opts.city) return null;
+  const params = {
+    q_keywords: `${opts.firstName} ${opts.lastName}`.trim(),
+    person_locations: [opts.city],
+    page: 1,
+    per_page: 5,
+  };
+  try {
+    const data = (await apolloRequest("/mixed_people/search", params, "searchByNameCity")) as PeopleSearchResponse | undefined;
+    const people = data?.people ?? [];
+    // Pick best name match
+    const wantedFirst = opts.firstName.toLowerCase();
+    const wantedLast = opts.lastName.toLowerCase();
+    return (
+      people.find(
+        (p) =>
+          (p.first_name ?? "").toLowerCase() === wantedFirst ||
+          ((p.first_name ?? "").toLowerCase().startsWith(wantedFirst) && wantedLast.length > 0),
+      ) ?? people[0] ?? null
+    );
+  } catch (e) {
+    log.warn(`apollo searchPersonByNameAndCity failed: ${(e as Error).message}`);
+    return null;
+  }
+}
+
+// ─── Phone selection ──────────────────────────────────────────────────
+
+export interface BestPhoneResult {
+  number: string;
+  confidence: "high" | "medium" | "low";
+  apolloType: string;
+  apolloPersonId: string;
+}
+
+function normalizeDigits(s: string | undefined): string {
+  if (!s) return "";
+  const d = s.replace(/\D/g, "");
+  return d.startsWith("44") ? "0" + d.slice(2) : d;
+}
+
+/**
+ * Pick the best phone for a decision-maker, preference:
+ *   verified mobile > verified direct office > general work line.
+ * Skips numbers equal to any of the practice's known main lines.
+ */
+export function extractBestPhone(
+  person: EnrichedPersonResult,
+  practiceMainPhones: string[] = [],
+): BestPhoneResult | null {
+  const phones = person.phone_numbers ?? [];
+  if (phones.length === 0) return null;
+  const mainDigits = new Set(practiceMainPhones.map(normalizeDigits).filter(Boolean));
+
+  function score(p: { type?: string; sanitized_number?: string; raw_number?: string; status?: string }): number {
+    const num = normalizeDigits(p.sanitized_number ?? p.raw_number);
+    if (!num || mainDigits.has(num)) return -1;
+    const t = (p.type ?? "").toLowerCase();
+    const s = (p.status ?? "").toLowerCase();
+    const verifiedBoost = s.includes("verified") || s.includes("good") ? 10 : 0;
+    if (t.includes("mobile") || t.includes("cell")) return 100 + verifiedBoost;
+    if (t.includes("direct")) return 80 + verifiedBoost;
+    if (t === "work" || t === "office" || t.includes("hq")) return 60 + verifiedBoost;
+    return 40 + verifiedBoost;
+  }
+
+  const ranked = [...phones]
+    .map((p) => ({ p, s: score(p) }))
+    .filter((x) => x.s >= 0)
+    .sort((a, b) => b.s - a.s);
+  if (ranked.length === 0) return null;
+
+  const best = ranked[0].p;
+  const num = best.sanitized_number ?? best.raw_number ?? "";
+  const t = (best.type ?? "").toLowerCase();
+  const verified = (best.status ?? "").toLowerCase().includes("verified") || (best.status ?? "").toLowerCase().includes("good");
+  const conf: "high" | "medium" | "low" =
+    t.includes("mobile") || t.includes("cell")
+      ? "high"
+      : t.includes("direct")
+        ? verified ? "high" : "medium"
+        : t === "work" || t === "office"
+          ? "medium"
+          : "low";
+
+  return { number: num, confidence: conf, apolloType: best.type ?? "unknown", apolloPersonId: person.id };
+}
+
+function toEnrichedPerson(p: Record<string, unknown>, fallbackId?: string): EnrichedPersonResult {
+  return {
+    id: String(p.id ?? fallbackId ?? ""),
+    first_name: p.first_name as string | undefined,
+    last_name: p.last_name as string | undefined,
+    name: p.name as string | undefined,
+    email: p.email as string | undefined,
+    linkedin_url: p.linkedin_url as string | undefined,
+    phone_numbers: p.phone_numbers as EnrichedPersonResult["phone_numbers"],
+    organization: p.organization as EnrichedPersonResult["organization"],
+    raw: p,
+  };
 }
