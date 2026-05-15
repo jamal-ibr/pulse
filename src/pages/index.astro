@@ -1,0 +1,68 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import profile from '../data/profile.json';
+
+const ledeParts = profile.lede.split(profile.ledeAccent);
+---
+
+<BaseLayout
+  title="Jamal Ibrahim — Senior Solutions Architect, EY"
+  description={profile.lede}
+  path="/"
+>
+  <section class="hero wrap">
+    <p class="eyebrow">{profile.location.toUpperCase()} · {profile.year}</p>
+    <h1>Jamal Ibrahim<span class="dot">.</span></h1>
+    <p class="lede dropcap">
+      {ledeParts[0]}<em>{profile.ledeAccent}</em>{ledeParts[1]}
+    </p>
+
+    <div class="meta-strip">
+      <div>
+        <span class="k">Role</span>
+        <span class="v">{profile.role}</span>
+      </div>
+      <div>
+        <span class="k">Focus</span>
+        <span class="v">{profile.focus}</span>
+      </div>
+      <div>
+        <span class="k">Faith</span>
+        <span class="v">{profile.faith}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <p class="section-label">now</p>
+    <div class="now-list">
+      {
+        profile.now.map((n) => (
+          <div class="now-item">
+            <h3>{n.title}</h3>
+            <span class="period">{n.period}</span>
+            <p>{n.summary}</p>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <p class="section-label">by the numbers</p>
+    <div class="stats">
+      {
+        profile.stats.map((s) => (
+          <div class="stat">
+            <div class="num">{s.value}</div>
+            <div class="lbl">{s.label}</div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="cta-foot wrap">
+    <a href="/portfolio">More on portfolio →</a>
+  </section>
+</BaseLayout>

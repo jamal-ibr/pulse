@@ -1,0 +1,139 @@
+{
+  "name": "Jamal Ibrahim",
+  "wordmark": "jamal.",
+  "location": "Birmingham, UK",
+  "year": "2026",
+  "role": "Senior Solutions Architect, EY",
+  "focus": "Agentic AI, Automation, Enterprise Data",
+  "faith": "Bismillah, Alhamdulillah",
+  "edition": "VOL. I · ISSUE 01 · BIRMINGHAM, UK · 2026",
+  "lede": "I design and build agentic AI systems. Senior Solutions Architect at EY, working at the intersection of AI, automation, and enterprise data.",
+  "ledeAccent": "agentic AI systems",
+  "contact": {
+    "email": "hello@jamalibrahim.com",
+    "linkedin": {
+      "label": "/in/jamalibrahim",
+      "url": "https://www.linkedin.com/in/jamalibrahim"
+    },
+    "github": {
+      "label": "/jamalibrahim",
+      "url": "https://github.com/jamalibrahim"
+    }
+  },
+  "now": [
+    {
+      "title": "EY Assurance",
+      "period": "2023 — Present",
+      "summary": "Senior Solutions Architect shipping AI tooling and audit automation."
+    },
+    {
+      "title": "Agentic AI Builds",
+      "period": "Ongoing",
+      "summary": "Independent voice-first agents and LLM-orchestrated workflows."
+    },
+    {
+      "title": "Mentorship",
+      "period": "Ongoing",
+      "summary": "20+ students placed into top apprenticeships."
+    }
+  ],
+  "stats": [
+    { "value": "1,000+", "label": "audit hours saved per year" },
+    { "value": "800+", "label": "business units running on his tooling" },
+    { "value": "20+", "label": "students placed into Big 4 and beyond" }
+  ],
+  "builds": [
+    {
+      "title": "Voice-First AI Agent (Healthcare)",
+      "kind": "Concept project",
+      "description": "24/7 inbound call handling with urgency triage, lead capture, and structured handoff to practice teams. Built end-to-end demo with 97-98% classification confidence across emergency, high-value, urgent, and routine scenarios.",
+      "stack": ["Anthropic Claude", "Vapi", "ElevenLabs", "Twilio", "Make.com"],
+      "status": "Live demo available on request"
+    },
+    {
+      "title": "Audit Workflow Automation (EY, anonymised)",
+      "kind": "Production",
+      "description": "End-to-end automation across multiple FTSE 100 audit engagements. Reduced manual data preparation across 30+ teams.",
+      "stack": ["Alteryx", "Power BI", "Power Query", "M", "DAX"],
+      "status": "1,000+ hours saved per year, 800+ business units"
+    },
+    {
+      "title": "FTSE 100 Tender Pitch Dashboards (EY, anonymised)",
+      "kind": "Production",
+      "description": "Power BI work used in tender pitches for major listed clients.",
+      "stack": ["Power BI", "DAX", "Data modelling"],
+      "status": "Internal"
+    },
+    {
+      "title": "This Site",
+      "kind": "Personal",
+      "description": "Personal portfolio with multi-theme switcher (Editorial / Code / Print).",
+      "stack": ["Astro", "Vanilla CSS", "Google Fonts"],
+      "status": "Live"
+    }
+  ],
+  "concepts": [
+    {
+      "title": "ADAPT Retrieval Assistant",
+      "description": "Internal-facing assistant for audit teams to retrieve methodology guidance and prior workpaper references."
+    },
+    {
+      "title": "Audit Analytics Modernisation Accelerator",
+      "description": "Capstone in progress. Migrating selected audit analytics workflows from Alteryx/desktop tooling onto a Databricks lakehouse foundation with governed cloud ERP extraction."
+    }
+  ],
+  "writing": [
+    "What I learned as the only Somali in a Big 4 apprenticeship cohort",
+    "Agentic AI is not what your LinkedIn feed says it is",
+    "Why I'm betting on enterprise AI strategy, not pure engineering"
+  ],
+  "about": {
+    "opening": "I design and build agentic AI systems. Senior Solutions Architect at EY, working at the intersection of AI, automation, and enterprise data. I am a strategist who can build, and a builder who thinks in strategy.",
+    "sections": [
+      {
+        "heading": "The Path",
+        "body": "I started at EY at 19 as one of the few Somali apprentices in a Big 4 firm in Birmingham. I was promoted twice, from Digital Apprentice to Solutions Developer to Senior Solutions Architect. Today I ship AI tooling and audit automation at scale inside EY's Data and Intelligence Delivery Centre of Excellence."
+      },
+      {
+        "heading": "What I Build",
+        "body": "Outside of EY, I build agentic AI systems. Voice-first agents, LLM-orchestrated workflows, the kind of tools that turn manual processes into infrastructure. I work with the modern AI stack: Anthropic, Vapi, ElevenLabs, Make.com, Twilio."
+      },
+      {
+        "heading": "What I'm Working Toward",
+        "body": "Enterprise AI strategy. Specifically, the intersection of AI capability, regulatory governance, and commercial outcomes. The kind of work that sits between the partners who own the relationship and the engineers who build the system."
+      },
+      {
+        "heading": "Where I'm From",
+        "body": "Birmingham. Alum Rock specifically. Faith-anchored. Football, Muay Thai, running. Family matters. Community matters."
+      }
+    ],
+    "beliefs": [
+      "Strategy without the ability to build is theatre.",
+      "Building without strategy is fragile.",
+      "Quiet output beats loud positioning, eventually.",
+      "Bismillah at the start, alhamdulillah at the end."
+    ]
+  },
+  "stackGroups": [
+    {
+      "name": "AI & Agents",
+      "items": ["Anthropic / Claude", "Claude Code", "Vapi", "ElevenLabs", "LangGraph", "MCP", "Prompt Engineering"]
+    },
+    {
+      "name": "Languages",
+      "items": ["Python", "SQL", "JavaScript", "DAX", "M / Power Query"]
+    },
+    {
+      "name": "Data & BI",
+      "items": ["Power BI", "Alteryx", "Databricks", "Data Modelling", "ETL / ELT"]
+    },
+    {
+      "name": "Cloud & Platforms",
+      "items": ["Microsoft Azure", "Azure AI Foundry", "Copilot Studio", "Make.com", "Twilio"]
+    },
+    {
+      "name": "Focus Areas",
+      "items": ["Agentic AI Engineering", "Enterprise AI Strategy", "Audit Automation", "AI Governance"]
+    }
+  ]
+}

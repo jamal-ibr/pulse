@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import profile from '../data/profile.json';
+---
+
+<BaseLayout
+  title="About — Jamal Ibrahim"
+  description="Senior Solutions Architect at EY. Birmingham. Builder of agentic AI systems, working toward enterprise AI strategy."
+  path="/about"
+>
+  <section class="hero wrap">
+    <p class="eyebrow">About</p>
+    <h1>The long version<span class="dot">.</span></h1>
+    <p class="lead-para dropcap">{profile.about.opening}</p>
+  </section>
+
+  <section class="section wrap">
+    {
+      profile.about.sections.map((s) => (
+        <div class="prose-block">
+          <p class="section-label">{s.heading}</p>
+          <h2>{s.heading}</h2>
+          <p>{s.body}</p>
+        </div>
+      ))
+    }
+
+    <blockquote class="pullquote">
+      Strategy without the ability to build is theatre.
+    </blockquote>
+
+    <div class="prose-block">
+      <p class="section-label">what I believe</p>
+      <ul class="beliefs">
+        {profile.about.beliefs.map((b) => <li>{b}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <p class="section-label">stack</p>
+    <div class="stack-grid">
+      {
+        profile.stackGroups.map((g) => (
+          <div class="stack-group">
+            <div class="gname">{g.name}</div>
+            <div class="pills">
+              {g.items.map((i) => <span class="pill">{i}</span>)}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <pre class="ascii-sig" aria-hidden="true">
+   _                       _
+  (_) __ _ _ __ ___   __ _| |
+  | |/ _` | '_ ` _ \ / _` | |
+  | | (_| | | | | | | (_| | |
+ _/ |\__,_|_| |_| |_|\__,_|_|
+|__/   built in birmingham
+</pre>
+  </section>
+</BaseLayout>

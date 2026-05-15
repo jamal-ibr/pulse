@@ -1,0 +1,64 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import profile from '../data/profile.json';
+---
+
+<BaseLayout
+  title="Portfolio — Jamal Ibrahim"
+  description="Agentic AI builds, audit automation, and forward-looking concepts by Jamal Ibrahim."
+  path="/portfolio"
+>
+  <section class="hero wrap">
+    <p class="eyebrow">Selected work</p>
+    <h1>Portfolio<span class="dot">.</span></h1>
+    <p class="lede">Builds, concepts, and writing. What I have shipped, what I am building, and what I am thinking about.</p>
+  </section>
+
+  <section class="section wrap">
+    <p class="section-label">builds</p>
+    <div class="cards">
+      {
+        profile.builds.map((b) => (
+          <article class="card">
+            <span class="kind">{b.kind}</span>
+            <h3>{b.title}</h3>
+            <p>{b.description}</p>
+            <div class="tags">
+              {b.stack.map((t) => <span class="tag">{t}</span>)}
+            </div>
+            <span class="status">{b.status}</span>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <p class="section-label">concepts</p>
+    <div class="cards">
+      {
+        profile.concepts.map((c) => (
+          <article class="card">
+            <span class="kind">Concept</span>
+            <h3>{c.title}</h3>
+            <p>{c.description}</p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section wrap">
+    <p class="section-label">writing</p>
+    <div class="writing-list">
+      {
+        profile.writing.map((w) => (
+          <div class="writing-item">
+            <span class="title">{w}</span>
+            <span class="soon">Coming soon</span>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>
