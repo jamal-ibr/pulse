@@ -8,13 +8,13 @@ import profile from '../data/profile.json';
   description="Senior Solutions Architect at EY. Birmingham. Builder of agentic AI systems, working toward enterprise AI strategy."
   path="/about"
 >
-  <section class="hero wrap">
+  <section class="hero wrap about-intro">
     <p class="eyebrow">About</p>
     <h1>The long version<span class="dot">.</span></h1>
     <p class="lead-para dropcap">{profile.about.opening}</p>
   </section>
 
-  <section class="section wrap">
+  <section class="section wrap about-body">
     {
       profile.about.sections.map((s) => (
         <div class="prose-block">
@@ -26,7 +26,8 @@ import profile from '../data/profile.json';
     }
 
     <blockquote class="pullquote">
-      Strategy without the ability to build is theatre.
+      The interesting work sits between the people who own the relationship and
+      the people who build the system.
     </blockquote>
 
     <div class="prose-block">
