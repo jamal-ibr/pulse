@@ -11,6 +11,18 @@ on:
         description: 'Branch with scraper code to run'
         required: true
         default: 'leads/invisalign-birmingham'
+      max_enrich:
+        description: 'Top N leads to enrich with paid Apollo calls'
+        required: false
+        default: '20'
+      max_credits:
+        description: 'Hard cap on Apollo credits per run'
+        required: false
+        default: '100'
+      phone_only:
+        description: 'Skip email cleanup stage (true/false)'
+        required: false
+        default: 'false'
   schedule:
     # 07:00 UTC every Monday (08:00 BST in British Summer Time).
     - cron: '0 7 * * 1'
@@ -51,6 +63,10 @@ jobs:
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
           GDRIVE_UPLOAD: '1'
           QUALITY_MODE: '1'
+          # Decision-maker upgrade controls (per-run, tunable from workflow_dispatch UI)
+          MAX_ENRICH: ${{ github.event.inputs.max_enrich || '20' }}
+          MAX_APOLLO_CREDITS_PER_RUN: ${{ github.event.inputs.max_credits || '100' }}
+          PHONE_ONLY: ${{ github.event.inputs.phone_only == 'true' && '1' || '0' }}
           CONTACT_EMAIL: pulse-leads@github-actions.local
         run: npm run scrape:leads
 
