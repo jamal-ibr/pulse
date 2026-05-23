@@ -1,0 +1,23 @@
+{
+  "_comment": "Phrases that must NEVER appear in a generated draft. Case-insensitive whole-phrase match. Extend freely. Avoid one-character/very short entries: they'll match too aggressively.",
+  "phrases": [
+    "Hope you're well",
+    "Hope you are well",
+    "I came across your practice",
+    "Enhance patient experience",
+    "Streamline operations",
+    "Cutting-edge AI",
+    "Leverage AI",
+    "Optimize workflows",
+    "Optimise workflows",
+    "Revolutionise",
+    "Revolutionize",
+    "Best-in-class",
+    "Empower",
+    "Game-changer",
+    "Seamless"
+  ],
+  "phrases_word_boundary": [
+    "Solutions"
+  ]
+}

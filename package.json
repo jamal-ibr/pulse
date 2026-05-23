@@ -1,20 +1,22 @@
 {
   "name": "pulse-lead-scraper",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "Invisalign-focused dental/ortho outreach pipeline for the West Midlands (Pulse agency).",
   "scripts": {
-    "build": "tsc -p scripts/scrape-leads/tsconfig.json",
+    "build": "tsc -p scripts/scrape-leads/tsconfig.json && node scripts/scrape-leads/tools/copy-static.mjs",
     "scrape:leads": "npm run build && node scripts/scrape-leads/dist/outreach.js",
     "scrape:leads:raw": "npm run build && node scripts/scrape-leads/dist/index.js",
     "scrape:leads:smoke": "TARGET_LEADS=20 SMOKE=1 npm run scrape:leads",
     "scrape:leads:verify": "node scripts/scrape-leads/dist/verify.js",
     "leads:enhance": "npm run build && node scripts/scrape-leads/dist/enhance.js --",
     "leads:calibrate": "npm run build && node scripts/scrape-leads/dist/calibration.js",
-    "leads:drive": "npm run build && node scripts/scrape-leads/dist/drive/upload-latest.js"
+    "leads:drive": "npm run build && node scripts/scrape-leads/dist/drive/upload-latest.js",
+    "leads:draft-outreach": "npm run build && node scripts/scrape-leads/dist/draft-outreach/index.js --"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
     "cheerio": "^1.0.0",
     "googleapis": "^144.0.0",
     "p-limit": "^6.1.0"
