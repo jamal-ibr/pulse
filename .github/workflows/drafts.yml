@@ -96,9 +96,10 @@ jobs:
           GMAIL_OAUTH_REFRESH_TOKEN: ${{ secrets.GMAIL_OAUTH_REFRESH_TOKEN }}
           GMAIL_FROM_EMAIL: ${{ secrets.GMAIL_FROM_EMAIL }}
           CONTACT_EMAIL: pulse-leads@github-actions.local
+          MAX_DRAFTS_INPUT: ${{ github.event.inputs.max_drafts }}
         run: |
-          if [ -n "${{ github.event.inputs.max_drafts }}" ]; then
-            npm run leads:draft-outreach -- --max-drafts ${{ github.event.inputs.max_drafts }}
+          if [ -n "$MAX_DRAFTS_INPUT" ]; then
+            npm run leads:draft-outreach -- --max-drafts "$MAX_DRAFTS_INPUT"
           else
             npm run leads:draft-outreach
           fi
