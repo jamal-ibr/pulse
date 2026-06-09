@@ -1,0 +1,82 @@
+[
+  {
+    "name": "classify_urgency",
+    "description": "Record the urgency classification for this call as soon as the caller's reason for calling is clear. Call this exactly once per call, before collecting lead details. If new information changes the picture (e.g. routine call reveals severe swelling), call it again with the new class.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "urgency": {
+          "type": "string",
+          "enum": ["emergency", "high_value", "urgent", "routine"],
+          "description": "emergency: uncontrolled bleeding, swelling affecting breathing or swallowing, knocked-out adult tooth, severe trauma. high_value: cosmetic treatment enquiry (Invisalign, veneers, whitening, implants, smile makeover). urgent: pain, broken tooth/filling/crown, lost appliance. routine: check-ups, hygiene, general questions, appointment admin."
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"],
+          "description": "How clearly the caller's situation matches the chosen class. Use low when guessing from vague information."
+        },
+        "reason": {
+          "type": "string",
+          "description": "One sentence: what the caller said that led to this classification."
+        }
+      },
+      "required": ["urgency", "confidence", "reason"]
+    }
+  },
+  {
+    "name": "capture_lead",
+    "description": "Save the caller's details once collected. Call this for every high_value and urgent call, and for any routine call where the caller wants a callback. Missing fields are allowed — save what you have rather than not saving at all.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Caller's name as given." },
+        "phone": {
+          "type": "string",
+          "description": "Best contact number, digits as read back and confirmed with the caller."
+        },
+        "treatment_interest": {
+          "type": "string",
+          "description": "Treatment or reason for calling, in the caller's own words."
+        },
+        "budget_signal": {
+          "type": "string",
+          "description": "Anything the caller said about budget or finance interest. Empty if not discussed."
+        },
+        "preferred_timing": {
+          "type": "string",
+          "description": "When they'd like to be seen or called back."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Anything else the team should know: questions you couldn't answer, unclear details, context."
+        }
+      },
+      "required": ["phone", "treatment_interest"]
+    }
+  },
+  {
+    "name": "book_consultation",
+    "description": "Check availability and book a consultation slot. First call with action=check to get offered slots, then call with action=book once the caller picks one. Only offer at most two slots per turn.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["check", "book"],
+          "description": "check: retrieve available slots for the requested window. book: confirm the chosen slot."
+        },
+        "window": {
+          "type": "string",
+          "description": "For check: the caller's preference, e.g. 'weekday evenings next week' or 'Saturday morning'."
+        },
+        "slot_id": {
+          "type": "string",
+          "description": "For book: the id of the slot the caller chose, from the check response."
+        },
+        "caller_name": { "type": "string" },
+        "caller_phone": { "type": "string" }
+      },
+      "required": ["action"]
+    }
+  }
+]
