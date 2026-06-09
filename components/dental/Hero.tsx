@@ -118,7 +118,7 @@ export function Hero() {
                     {/* Patient */}
                     <div className="flex justify-end">
                       <div className="rounded-2xl rounded-tr-sm bg-primary px-3 py-2 max-w-[80%]">
-                        <p className="text-white leading-relaxed">Hi, I'm interested in Invisalign. What's the cost?</p>
+                        <p className="text-white leading-relaxed">Hi, I&rsquo;m interested in Invisalign. What&rsquo;s the cost?</p>
                       </div>
                     </div>
 

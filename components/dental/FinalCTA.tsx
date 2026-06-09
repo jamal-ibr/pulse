@@ -16,7 +16,7 @@ export function FinalCTA() {
 
         <p className="mt-5 mx-auto max-w-xl text-lg text-gray-400">
           Every week without Pulse AI is another 1–2 high-value enquiries going to a competitor.
-          Book a 15-minute demo — we'll show you exactly how many leads you're missing.
+          Book a 15-minute demo — we&rsquo;ll show you exactly how many leads you&rsquo;re missing.
         </p>
 
         <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">

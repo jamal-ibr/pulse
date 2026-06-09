@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
 html {
   scroll-behavior: smooth;
 }
@@ -37,32 +35,6 @@ body {
 
 .d-badge {
   @apply inline-flex items-center rounded-full bg-primaryLight px-3.5 py-1 text-xs font-semibold uppercase tracking-widest text-primary;
-}
-
-/* ── Legacy dark-theme utilities (for /industries pages) ── */
-.section-shell {
-  @apply mx-auto w-full max-w-6xl px-6 py-20 lg:py-24;
-}
-
-.glass-card {
-  @apply rounded-2xl border border-borderSubtle bg-panel p-6 backdrop-blur-xl;
-}
-
-.muted {
-  @apply text-textSecondary;
-}
-
-.cta-glow {
-  @apply shadow-glowCTA transition duration-300 hover:brightness-110 hover:shadow-glowCTA;
-}
-
-.pulse-wave {
-  background: radial-gradient(circle at 50% 20%, rgba(77, 163, 255, 0.16), transparent 60%);
-}
-
-@keyframes pulse {
-  0% { transform: translateX(-50%); }
-  100% { transform: translateX(0%); }
 }
 
 /* ── Phone mockup ── */

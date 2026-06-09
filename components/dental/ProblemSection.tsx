@@ -13,8 +13,8 @@ const stats = [
   },
   {
     value: '£40k',
-    unit: 'per month',
-    label: 'Lost revenue per practice',
+    unit: 'per year',
+    label: 'Revenue at risk per practice',
     sub: 'Based on £4–5k average treatment value',
     color: 'border-amber-200 bg-amber-50',
     textColor: 'text-amber-600',
@@ -92,6 +92,9 @@ export function ProblemSection() {
             <StatCard key={stat.label} {...stat} delay={i * 120} />
           ))}
         </div>
+        <p className="mt-4 text-center text-xs text-textLight">
+          Illustrative figures, modelled on average UK cosmetic treatment values — not guarantees.
+        </p>
 
         {/* Scenario callout */}
         <div className="mt-10 d-card border-l-4 border-l-primary bg-primaryLight/30">
@@ -104,7 +107,7 @@ export function ProblemSection() {
             <div>
               <p className="font-semibold text-textDark">A typical Tuesday evening scenario:</p>
               <p className="mt-1 text-textMuted">
-                A patient searches "Invisalign near me" at 9pm and calls your practice. Your
+                A patient searches &ldquo;Invisalign near me&rdquo; at 9pm and calls your practice. Your
                 voicemail picks up. They call the next practice on Google — one that uses Pulse AI.
                 That practice books a <span className="font-semibold text-textDark">£4,200 consultation</span> before midnight.
                 You find a missed call in the morning.
