@@ -1,0 +1,16 @@
+{
+  "name": "pulse-voice-agent-postcall",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Post-call pipeline for the Pulse AI receptionist: normalize end-of-call webhooks, summarize with Claude, hand off to the practice",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
