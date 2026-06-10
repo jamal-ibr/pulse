@@ -1,0 +1,10 @@
+{
+  "name": "pulse-bakeoff-mock-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mock tool endpoints for the Pulse AI receptionist platform bake-off",
+  "engines": {
+    "node": ">=20"
+  }
+}

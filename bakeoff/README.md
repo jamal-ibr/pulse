@@ -16,6 +16,7 @@ these files work on both without edits.
 | `tools.json` | Tool definitions: `classify_urgency`, `capture_lead`, `book_consultation` |
 | `practice-config.example.json` | Per-practice variables that fill the prompt template |
 | `test-call-protocol.md` | 20 scripted scenarios, latency measurement method, scoring sheet |
+| `mock-server/` | Deployable Vercel mock for all three tools (deterministic slots, JSON-line logging, shared-secret auth) |
 
 ## Setup — ElevenLabs Agents (candidate A)
 

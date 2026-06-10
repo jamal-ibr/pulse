@@ -23,11 +23,12 @@ perceived latency is what clients buy.
 
 ## Mock booking endpoint
 
-For the bake-off, point `book_consultation` at a mock that always returns
-two slots ("Tuesday at 6:30pm", "Thursday at 7pm" with ids `slot_tue`,
-`slot_thu`) for `check`, and `{"status":"confirmed"}` for `book`. A 10-line
-Vercel function or even a static webhook responder is enough. Keep the mock's
-response time <200ms so tool latency doesn't pollute the platform comparison.
+Ready-built in [`mock-server/`](mock-server/) — deploy once with
+`vercel deploy --prod` (instructions in its README). It always returns the
+same two slots ("Tuesday at 6:30pm", "Thursday at 7pm") so every scripted
+call is reproducible, responds well under the 200ms budget so tool latency
+doesn't pollute the platform comparison, and logs every tool call as a JSON
+line you can read straight into the scoring sheet via `vercel logs`.
 
 ## The 20 scenarios
 
