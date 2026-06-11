@@ -1,0 +1,116 @@
+name: Generate outreach drafts
+
+# Runs automatically after every successful "Lead scrape + Drive upload"
+# run, OR can be triggered manually from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch with scraper code'
+        required: true
+        default: 'leads/invisalign-birmingham'
+      max_drafts:
+        description: 'Cap drafts to top N by fit_score (blank = no cap)'
+        required: false
+        default: ''
+  workflow_run:
+    workflows: ["Lead scrape + Drive upload"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read   # needed to download artifacts from prior workflow runs
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    # If chained from scrape: only run on successful scrape.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout scraper code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || 'leads/invisalign-birmingham' }}
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      # If chained from scrape, pull the CSV that scrape just produced.
+      - name: Download CSV from chained scrape run
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          path: data
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: outreach-leads-*
+          merge-multiple: true
+
+      # If triggered manually, grab the latest successful scrape artifact.
+      - name: Find latest scrape artifact (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        id: latestrun
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID=$(gh run list \
+            --workflow="Lead scrape + Drive upload" \
+            --status=success \
+            --limit=1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::no prior successful scrape run found"
+            exit 1
+          fi
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download CSV from latest successful scrape (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/download-artifact@v4
+        with:
+          path: data
+          run-id: ${{ steps.latestrun.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: outreach-leads-*
+          merge-multiple: true
+
+      - name: Run drafting agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Sheet fallback (always-available auth)
+          GDRIVE_OAUTH_CLIENT_ID: ${{ secrets.GDRIVE_OAUTH_CLIENT_ID }}
+          GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.GDRIVE_OAUTH_CLIENT_SECRET }}
+          GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.GDRIVE_OAUTH_REFRESH_TOKEN }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          # Gmail Drafts path (optional; falls back to Sheet if missing)
+          GMAIL_OAUTH_CLIENT_ID: ${{ secrets.GMAIL_OAUTH_CLIENT_ID }}
+          GMAIL_OAUTH_CLIENT_SECRET: ${{ secrets.GMAIL_OAUTH_CLIENT_SECRET }}
+          GMAIL_OAUTH_REFRESH_TOKEN: ${{ secrets.GMAIL_OAUTH_REFRESH_TOKEN }}
+          GMAIL_FROM_EMAIL: ${{ secrets.GMAIL_FROM_EMAIL }}
+          CONTACT_EMAIL: pulse-leads@github-actions.local
+        run: |
+          if [ -n "${{ github.event.inputs.max_drafts }}" ]; then
+            npm run leads:draft-outreach -- --max-drafts ${{ github.event.inputs.max_drafts }}
+          else
+            npm run leads:draft-outreach
+          fi
+
+      - name: Archive drafts JSON + summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: outreach-drafts-${{ github.run_number }}
+          path: |
+            data/outreach-drafts-*.json
+            data/outreach_drafts_summary-*.md
+            data/outreach_drafts_summary.md
+          retention-days: 30
+          if-no-files-found: warn
