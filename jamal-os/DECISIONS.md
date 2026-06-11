@@ -1,0 +1,131 @@
+# DECISIONS.md - Jamal OS
+
+Decisions made during the build, with trade-offs and upgrade paths.
+Nothing here is hidden in chat history; this is the record.
+
+## Repository placement
+
+The repo root already contains Jamal's Astro portfolio site
+(pulsewebsite). Jamal OS lives in `jamal-os/` instead of replacing it.
+`npm run dev` runs from inside `jamal-os/`. Trade-off: one extra `cd`.
+Upgrade path: move to its own repository when convenient; the folder is
+fully self-contained.
+
+## Stack choices
+
+- Next.js 15 App Router with server components and server actions: no
+  separate API layer needed for a single-user local app
+- Tailwind CSS v4 via `@tailwindcss/postcss` with theme tokens in
+  `globals.css`: no tailwind.config.js needed
+- Custom lightweight component set instead of shadcn/ui: the app needs
+  about ten primitives; pulling the full shadcn toolchain was not worth
+  the dependency weight. The component structure (`src/components/ui.tsx`)
+  is shadcn-like and easy to swap later
+- System font stack instead of a downloaded webfont: keeps the build
+  fully offline-capable
+
+## Database
+
+- One `habit_logs` row per day with one column per metric, rather than a
+  generic habit/value EAV table: makes sub-30-second logging and
+  compliance queries trivial. Trade-off: adding a new habit means a
+  migration. Acceptable for a personal system
+- Dates stored as ISO text, timestamps as ISO text with SQLite defaults:
+  simple, sortable, timezone-naive by design for a single-user local app
+- `training_sessions` also gets a row when training is logged via the
+  daily habit form, keeping the fitness page consistent
+
+## Outreach counting
+
+"Outreach sent this week" counts `pipeline_events` rows with event
+`outreach_sent`. Moving a card from identified to contacted records one
+automatically; the "Log outreach" button records follow-up sends. This
+keeps the primary metric honest without a separate logging screen.
+
+## Level system calibration
+
+- Pillar scores derive from a 28-day evidence window: compliance rate
+  scaled to a max of 70, plus a consistency bonus of up to 20 earned
+  over 8+ weeks, all multiplied by data completeness. Perfect compliance
+  with thin history lands in the 60s at best
+- Career has no logging source yet, so it is scored on capped thin
+  evidence with an explicit note. Upgrade path: count EY/BPP project
+  activity once it accumulates
+- Overall level is a weighted composite where missing pillars contribute
+  zero to the numerator but full weight to the denominator
+- Snapshot gains are capped at +3 per snapshot (`dampenLevelJump`)
+- Score 100 is reserved and unreachable; `clampScore` caps at 99
+
+## Weekly review pillar scores
+
+Out-of-10 scores are computed in code from the week's logs with the
+denominator fixed at 7 days, so unlogged days lower the score. The AI
+receives these as facts and may not change them.
+
+## Prayer times
+
+Static Birmingham monthly timetable in `src/lib/prayer-times.ts`
+(approximate mid-month values, UK clock time). A live package was not
+worth a network dependency for the MVP. Upgrade path: the `adhan` npm
+package computes precise times offline from coordinates; swap
+`getBirminghamPrayerTimes` internals without changing callers.
+
+## Email and calendar connectors
+
+Mock-first. The Gmail provider scaffold throws with a clear message and
+bakes the read-only scope into the file. The Google Calendar scaffold
+does the same. OAuth token encryption is specified
+(LOCAL_ENCRYPTION_KEY) but not implemented because no tokens exist yet.
+Apple Calendar .ics import is documented as a planned upgrade
+(docs/roadmap.md), not implemented.
+
+## AI mock provider
+
+Deterministic string templates keyed by prompt name, extracting a few
+facts from the structured input. Honest about being mock output in every
+response. This keeps every AI-touching feature testable and usable
+offline.
+
+## Redaction
+
+Regex-based masking, deliberately over-broad (for example, the NI number
+pattern accepts invalid prefix letters): for outbound redaction, false
+positives are safer than false negatives. Sensitive email bodies are
+withheld entirely rather than masked.
+
+## CSV import
+
+Hand-rolled RFC-4180-ish parser (quotes, escaped quotes, CRLF) rather
+than a dependency; about 60 lines and unit-tested. Header detection
+covers Monzo and common UK bank exports; unknown headers produce a clear
+error instead of bad rows.
+
+## Command bar and quick add
+
+The spec's global command bar and quick-add button were simplified to
+fast per-page forms plus the mobile bottom nav. A true command palette is
+listed in the roadmap. Trade-off accepted to keep the MVP focused; every
+logging flow is still under 30 seconds.
+
+## Simplified or deferred
+
+- `/journal` exists as a table and seed but has no dedicated page yet;
+  journal entries surface nowhere in the UI. Roadmap item
+- `notes`, `body_metrics`, `finance_goals` tables exist with minimal or
+  no UI; schema-first so future sessions need no migrations
+- Email triage categories are stored on seed and computed via keyword
+  rules for new mail; AI categorisation is a roadmap item
+- `jamal-os/.claude/settings.json` allows the npm/db commands, denies
+  reads of `.env.local` and the database, and adds one safe Stop hook
+  (a test/build reminder echo). No destructive hooks. It applies when a
+  Claude Code session runs inside `jamal-os/`; the repo root settings
+  are untouched because the repo is shared with the portfolio site
+
+## Known limitations
+
+- Single user, no auth, local machine only (by design)
+- Streak calculations look back 7 days only
+- The dev server and any LAN device can reach the app; do not run it on
+  untrusted networks with sensitive data loaded
+- Mock AI output is intentionally generic; the system's edge comes from
+  the coded rules, which never depend on the AI
