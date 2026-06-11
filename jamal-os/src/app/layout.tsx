@@ -1,15 +1,24 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Sidebar, MobileNav, TopBar } from "@/components/shell";
+import { RegisterServiceWorker } from "@/components/register-sw";
 import { getSetting } from "@/lib/services/settings";
 
 export const metadata: Metadata = {
   title: "Jamal OS",
   description: "Your private operating system for discipline, strategy, and becoming.",
+  appleWebApp: {
+    capable: true,
+    title: "Jamal OS",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0d12",
+  themeColor: "#040c14",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export const dynamic = "force-dynamic";
@@ -29,6 +38,7 @@ export default async function RootLayout({
           <div className="mx-auto max-w-5xl">{children}</div>
         </main>
         <MobileNav />
+        <RegisterServiceWorker />
       </body>
     </html>
   );

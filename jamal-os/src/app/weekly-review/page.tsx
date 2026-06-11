@@ -63,7 +63,7 @@ export default async function WeeklyReviewPage() {
             Latest review ({latest.weekStart} to {latest.weekEnd})
           </CardTitle>
           <div className="mt-2 whitespace-pre-line text-sm leading-relaxed">{latest.aiSummary}</div>
-          <div className="mt-3 rounded-lg border border-accent/30 bg-emerald-950/30 p-3 text-sm">
+          <div className="mt-3 rounded-lg border border-accent/30 bg-accent/10 p-3 text-sm">
             <span className="text-xs font-semibold uppercase tracking-wider text-accent">Commitment</span>
             <div className="mt-1">{latest.commitment}</div>
           </div>

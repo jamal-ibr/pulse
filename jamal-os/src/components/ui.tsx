@@ -9,7 +9,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <div className={`rounded-xl border border-edge bg-panel p-4 ${className}`}>
+    <div className={`rounded-xl border border-edge bg-panel/80 p-4 ${className}`}>
       {children}
     </div>
   );
@@ -23,7 +23,7 @@ export function CardTitle({
   href?: string;
 }) {
   const title = (
-    <h2 className="text-xs font-semibold uppercase tracking-widest text-ink-dim">
+    <h2 className="font-mono text-xs font-semibold uppercase tracking-widest text-ink-dim">
       {children}
     </h2>
   );
@@ -59,7 +59,7 @@ export function Stat({
           : "text-ink";
   return (
     <div>
-      <div className={`text-2xl font-bold tabular-nums ${toneClass}`}>{value}</div>
+      <div className={`font-mono text-2xl font-bold tabular-nums ${toneClass}`}>{value}</div>
       <div className="text-xs text-ink-dim">{label}</div>
       {hint && <div className="mt-0.5 text-[11px] text-ink-faint">{hint}</div>}
     </div>
@@ -75,10 +75,10 @@ export function Badge({
 }) {
   const tones: Record<string, string> = {
     neutral: "bg-edge text-ink-dim",
-    good: "bg-emerald-950 text-accent border border-emerald-900",
-    warn: "bg-amber-950 text-warn border border-amber-900",
-    danger: "bg-red-950 text-danger border border-red-900",
-    info: "bg-blue-950 text-info border border-blue-900",
+    good: "bg-accent/10 text-accent border border-accent/30",
+    warn: "bg-warn/10 text-warn border border-warn/30",
+    danger: "bg-danger/10 text-danger border border-danger/30",
+    info: "bg-info/10 text-info border border-info/30",
   };
   return (
     <span
@@ -100,10 +100,17 @@ export function ProgressBar({
 }) {
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
   const color =
-    tone === "good" ? "bg-accent" : tone === "warn" ? "bg-warn" : "bg-danger";
+    tone === "good"
+      ? "bg-accent text-accent"
+      : tone === "warn"
+        ? "bg-warn text-warn"
+        : "bg-danger text-danger";
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-edge">
-      <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      <div
+        className={`h-full rounded-full ${color}`}
+        style={{ width: `${pct}%`, boxShadow: "0 0 6px 0 currentColor" }}
+      />
     </div>
   );
 }
@@ -124,10 +131,10 @@ export function EmptyState({
 }
 
 export const inputClass =
-  "w-full rounded-lg border border-edge bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent focus:outline-none";
+  "w-full rounded-lg border border-edge bg-bg/70 px-3 py-2 text-sm text-ink placeholder:text-ink-dim focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40";
 
 export const buttonClass =
-  "inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-black transition hover:bg-accent-dim disabled:opacity-50";
+  "inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-bg transition hover:bg-accent-dim focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50";
 
 export const buttonGhostClass =
-  "inline-flex items-center justify-center rounded-lg border border-edge bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim transition hover:border-accent hover:text-accent";
+  "inline-flex items-center justify-center rounded-lg border border-edge bg-panel px-3 py-1.5 text-xs font-medium text-ink-dim transition hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";

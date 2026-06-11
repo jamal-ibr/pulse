@@ -102,7 +102,7 @@ export default async function HabitsPage() {
             <input name="notes" defaultValue={log?.notes ?? ""} className={inputClass} placeholder="Optional" />
           </label>
           <label className="flex items-end gap-2 pb-2 text-xs text-ink-dim">
-            <input type="checkbox" name="monThuFast" defaultChecked={log?.monThuFast ?? false} className="h-4 w-4 accent-emerald-400" />
+            <input type="checkbox" name="monThuFast" defaultChecked={log?.monThuFast ?? false} className="h-4 w-4 accent-cyan-400" />
             Mon/Thu fast
           </label>
           <div className="col-span-2 md:col-span-4">

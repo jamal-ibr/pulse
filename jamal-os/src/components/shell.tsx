@@ -56,6 +56,18 @@ const MOBILE_NAV: Array<[string, string, string]> = [
   ["/level", "Level", "▲"],
 ];
 
+export function BrandMark({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      className={`font-mono font-bold uppercase tracking-[0.22em] ${
+        compact ? "text-sm" : "text-base"
+      }`}
+    >
+      Jamal&nbsp;<span className="glow-accent text-accent">OS</span>
+    </span>
+  );
+}
+
 function NavLink({ href, label }: { href: string; label: string }) {
   const pathname = usePathname();
   const active = pathname === href;
@@ -64,7 +76,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
       href={href}
       className={`block rounded-lg px-3 py-1.5 text-sm transition ${
         active
-          ? "bg-panel-hover font-semibold text-accent"
+          ? "bg-accent/10 font-semibold text-accent"
           : "text-ink-dim hover:bg-panel-hover hover:text-ink"
       }`}
     >
@@ -75,19 +87,17 @@ function NavLink({ href, label }: { href: string; label: string }) {
 
 export function Sidebar({ dataMode }: { dataMode: string }) {
   return (
-    <aside className="fixed inset-y-0 left-0 hidden w-56 flex-col border-r border-edge bg-panel/50 px-3 py-5 md:flex">
+    <aside className="fixed inset-y-0 left-0 hidden w-56 flex-col border-r border-edge bg-panel/60 px-3 py-5 backdrop-blur-sm md:flex">
       <Link href="/" className="px-3">
-        <div className="text-lg font-bold tracking-tight">
-          Jamal <span className="text-accent">OS</span>
-        </div>
-        <div className="mt-0.5 text-[10px] leading-tight text-ink-faint">
+        <BrandMark />
+        <div className="mt-1 font-mono text-[9px] uppercase tracking-[0.18em] leading-tight text-ink-faint">
           Discipline. Strategy. Becoming.
         </div>
       </Link>
       <nav className="mt-6 flex-1 space-y-5 overflow-y-auto">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
-            <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-ink-faint">
+            <div className="px-3 pb-1 font-mono text-[10px] font-semibold uppercase tracking-widest text-ink-faint">
               {group.label}
             </div>
             {group.items.map(([href, label]) => (
@@ -103,15 +113,15 @@ export function Sidebar({ dataMode }: { dataMode: string }) {
 
 export function DataModeIndicator({ mode }: { mode: string }) {
   const labels: Record<string, [string, string]> = {
-    local_mock: ["Local mock mode", "bg-amber-400"],
-    local_real: ["Local real data", "bg-emerald-400"],
-    connected_read: ["Connected read-only", "bg-blue-400"],
-    connected_write: ["Connected write-enabled", "bg-red-400"],
+    local_mock: ["Local mock", "text-warn"],
+    local_real: ["Local live", "text-accent"],
+    connected_read: ["Connected read", "text-info"],
+    connected_write: ["Connected write", "text-danger"],
   };
-  const [label, dot] = labels[mode] ?? labels.local_mock;
+  const [label, tone] = labels[mode] ?? labels.local_mock;
   return (
-    <div className="mx-3 flex items-center gap-2 rounded-lg border border-edge px-3 py-2 text-[11px] text-ink-dim">
-      <span className={`h-2 w-2 rounded-full ${dot}`} />
+    <div className="mx-3 flex items-center gap-2 rounded-full border border-edge bg-bg/60 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-ink-dim">
+      <span className={`hud-dot h-2 w-2 rounded-full bg-current ${tone}`} />
       {label}
     </div>
   );
@@ -120,15 +130,15 @@ export function DataModeIndicator({ mode }: { mode: string }) {
 export function MobileNav() {
   const pathname = usePathname();
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-edge bg-panel/95 backdrop-blur md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-edge bg-panel/90 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       {MOBILE_NAV.map(([href, label, icon]) => {
         const active = pathname === href;
         return (
           <Link
             key={href}
             href={href}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] ${
-              active ? "text-accent" : "text-ink-dim"
+            className={`flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 py-2 font-mono text-[10px] uppercase tracking-wide ${
+              active ? "glow-accent text-accent" : "text-ink-dim"
             }`}
           >
             <span className="text-base leading-none">{icon}</span>
@@ -142,9 +152,9 @@ export function MobileNav() {
 
 export function TopBar({ dataMode }: { dataMode: string }) {
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-edge bg-bg/90 px-4 py-3 backdrop-blur md:hidden">
-      <Link href="/" className="text-base font-bold">
-        Jamal <span className="text-accent">OS</span>
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-edge bg-bg/85 px-4 py-3 backdrop-blur md:hidden">
+      <Link href="/">
+        <BrandMark compact />
       </Link>
       <DataModeIndicator mode={dataMode} />
     </header>

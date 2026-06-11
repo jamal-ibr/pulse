@@ -80,6 +80,36 @@ Barclays, HSBC, Lloyds, NatWest, Starling exports with
 unusual headers, rename the header row to `Date,Description,Amount`
 before importing.
 
+## Use it on your phone
+
+Jamal OS is a PWA. The easiest route is your home Wi-Fi:
+
+1. On your computer, run `npm run dev:lan` (or `npm run build` then
+   `npm run start:lan` for the faster production build)
+2. Find your computer's local IP address:
+   - macOS: System Settings, Wi-Fi, Details
+   - Windows: `ipconfig` (look for IPv4 Address)
+   - Linux: `hostname -I`
+3. On your phone (same Wi-Fi), open `http://<that-ip>:3000`
+4. Add it to your home screen:
+   - iPhone (Safari): Share button, "Add to Home Screen". It opens
+     full screen with the Jamal OS icon, no browser chrome.
+   - Android (Chrome): menu, "Add to Home screen"
+
+Notes:
+
+- Your computer must be on and running the server for the phone to
+  reach it. The data lives in the SQLite file on the computer, so
+  phone and desktop always see the same state.
+- Over plain `http://` on a LAN, Android treats the page as insecure
+  and gives a shortcut rather than a full install. iPhone gives the
+  full-screen app experience either way. For a proper installed app
+  everywhere, serve over HTTPS (Tailscale Serve is the simplest:
+  `tailscale serve 3000` gives you a private HTTPS URL that works
+  away from home too).
+- Do not deploy this to a public host without adding authentication.
+  Everything in it is private by design.
+
 ## Troubleshooting
 
 - "no such table": run `npm run db:migrate` then `npm run db:seed`
