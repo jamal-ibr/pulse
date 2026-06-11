@@ -30,8 +30,8 @@ export async function addTask(formData: FormData) {
     energy: formData.get("energy"),
     scariness: formData.get("scariness"),
   });
-  if (!parsed.success) return { error: "Invalid task. Scariness 1 to 5 is required." };
-  if (!validateScariness(parsed.data.scariness)) return { error: "Scariness must be 1 to 5." };
+  if (!parsed.success) return;
+  if (!validateScariness(parsed.data.scariness)) return;
 
   const [task] = await db
     .insert(schema.tasks)
