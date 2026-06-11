@@ -1,5 +1,5 @@
 const KEY = 'jamal-theme';
-const THEMES = ['editorial', 'code', 'print'];
+const THEMES = ['editorial', 'code', 'print', 'sky', 'lava'];
 const DEFAULT = 'editorial';
 
 function classFor(t) {
@@ -21,6 +21,8 @@ function apply(theme) {
   } catch (e) {
     /* storage unavailable, in-memory only */
   }
+  // Notify listeners (3D background scenes, effects) of the active theme
+  window.dispatchEvent(new CustomEvent('jamal:theme', { detail: theme }));
 }
 
 function current() {

@@ -1,0 +1,169 @@
+/* ============================================================
+   Theme: Lava
+   Molten terrain WebGL scene. Charcoal rock, ember glow, serif
+   headlines floating over the ridge like the reference shot.
+   ============================================================ */
+
+html.theme-lava {
+  --bg: #070403;
+  --bg-soft: rgba(18, 11, 8, 0.55);
+  --text: #f0e3d4;
+  --text-soft: #c2a890;
+  --text-muted: #84705f;
+  --accent: #ff7a3d;
+  --accent-2: #ff3d2e;
+  --line: rgba(255, 150, 90, 0.12);
+  --line-strong: rgba(255, 150, 90, 0.28);
+
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --body-weight: 300;
+
+  background: #070403;
+}
+
+html.theme-lava body {
+  background: transparent;
+}
+
+html.theme-lava .texture {
+  display: none;
+}
+
+/* ---- smoked-glass panels over the terrain ---- */
+html.theme-lava .hero,
+html.theme-lava .section,
+html.theme-lava .cta-foot {
+  background: rgba(10, 6, 4, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 140, 80, 0.1);
+  border-radius: 18px;
+  margin-block: 1.25rem;
+  padding-inline: clamp(1.5rem, 4vw, 3rem);
+}
+
+html.theme-lava .hero {
+  padding-block: clamp(3.5rem, 10vw, 7rem);
+  margin-top: 2rem;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+}
+
+html.theme-lava .section {
+  padding-block: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+/* ---- header ---- */
+html.theme-lava .site-header {
+  background: rgba(7, 4, 3, 0.6);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 140, 80, 0.12);
+}
+
+html.theme-lava .nav-links a:hover,
+html.theme-lava .nav-links a[aria-current='page'] {
+  color: var(--accent);
+}
+
+html.theme-lava .theme-switch button[aria-pressed='true'] {
+  background: linear-gradient(120deg, #ff5a2e, #ff9d45);
+  color: #160803;
+}
+
+/* ---- molten type, serif and glowing like the reference ---- */
+html.theme-lava .hero h1 {
+  font-style: italic;
+  font-weight: 400;
+  text-shadow: 0 0 50px rgba(255, 110, 40, 0.35);
+}
+
+html.theme-lava .hero h1 .dot {
+  background: linear-gradient(120deg, #ff5a2e, #ffb35c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+html.theme-lava .hero .lede em {
+  font-style: italic;
+  background: linear-gradient(120deg, #ff6a35, #ffc06a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+html.theme-lava .eyebrow {
+  color: var(--accent);
+  text-shadow: 0 0 24px rgba(255, 110, 40, 0.5);
+}
+
+html.theme-lava .stat .num {
+  background: linear-gradient(120deg, #ff5a2e, #ffb35c);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(255, 110, 40, 0.35));
+}
+
+/* ---- ember-lit cards ---- */
+html.theme-lava .card {
+  background: rgba(16, 10, 7, 0.6);
+  border: 1px solid rgba(255, 140, 80, 0.18);
+  border-radius: 14px;
+  transition: transform 0.15s ease, box-shadow 0.3s ease,
+    border-color 0.3s ease;
+  will-change: transform;
+}
+
+html.theme-lava .card:hover {
+  border-color: rgba(255, 140, 80, 0.55);
+  box-shadow: 0 0 40px rgba(255, 90, 30, 0.22),
+    inset 0 0 30px rgba(255, 90, 30, 0.05);
+}
+
+html.theme-lava .card .kind {
+  color: var(--accent);
+}
+
+html.theme-lava .tag,
+html.theme-lava .pill {
+  border-color: rgba(255, 140, 80, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 110, 40, 0.06);
+}
+
+html.theme-lava .contact-row:hover .cvalue {
+  color: var(--accent);
+  text-shadow: 0 0 30px rgba(255, 110, 40, 0.45);
+}
+
+html.theme-lava .cta-foot a:hover {
+  color: var(--accent);
+  text-shadow: 0 0 30px rgba(255, 110, 40, 0.45);
+}
+
+html.theme-lava .site-footer {
+  border-top: 1px solid rgba(255, 140, 80, 0.12);
+}
+
+html.theme-lava .site-footer .blessing {
+  font-style: italic;
+  background: linear-gradient(120deg, #ff6a35, #ffc06a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (max-width: 720px) {
+  html.theme-lava .hero,
+  html.theme-lava .section,
+  html.theme-lava .cta-foot {
+    border-radius: 14px;
+    margin-inline: 0.5rem;
+  }
+}

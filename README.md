@@ -8,6 +8,9 @@ not a colour swap.
 ## Stack
 
 - [Astro 4](https://astro.build) — static output, file-based routing
+- [React](https://react.dev) island (`ThemeScene.jsx`) hosting the WebGL scenes
+- [Three.js](https://threejs.org) with custom GLSL shaders for the Sky and
+  Lava themes, lazy-loaded only when those themes are active
 - Vanilla CSS with CSS custom properties (no Tailwind, no CSS-in-JS)
 - Vanilla JS theme switcher with `localStorage` persistence
 - Google Fonts: Fraunces, Inter, JetBrains Mono, Newsreader, Lora
@@ -46,6 +49,8 @@ All copy, stats, builds, contact links, and stack tags live in
 | Editorial (default) | `theme-editorial` | Dark, warm, italic gold serif |
 | Code | `theme-code` | Terminal, file-tree nav, scanlines |
 | Print | `theme-print` | Newsprint, masthead, drop caps, columns |
+| Sky | `theme-sky` | Glassmorphism over a live 3D WebGL ocean |
+| Lava | `theme-lava` | 3D molten terrain, ember particles, glow type |
 
 Selection persists under the `jamal-theme` localStorage key. Press `t` to
 cycle themes. The Code theme hides an ASCII signature; Print surfaces a

@@ -2,6 +2,7 @@
 import { ViewTransitions } from 'astro:transitions';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import ThemeScene from '../components/ThemeScene.jsx';
 import '../styles/global.css';
 
 const {
@@ -51,7 +52,7 @@ const ogImage = new URL('/og-image.svg', site).href;
       (function () {
         try {
           var t = localStorage.getItem('jamal-theme');
-          var valid = ['editorial', 'code', 'print'];
+          var valid = ['editorial', 'code', 'print', 'sky', 'lava'];
           if (!t || valid.indexOf(t) === -1) t = 'editorial';
           var r = document.documentElement;
           valid.forEach(function (x) {
@@ -65,11 +66,13 @@ const ogImage = new URL('/og-image.svg', site).href;
   </head>
   <body>
     <div class="texture" aria-hidden="true"></div>
+    <ThemeScene client:idle transition:persist="theme-scene" />
     <Header path={path} />
     <main>
       <slot />
     </main>
     <Footer />
     <script src="../scripts/theme.js"></script>
+    <script src="../scripts/effects.js"></script>
   </body>
 </html>

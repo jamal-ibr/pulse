@@ -11,6 +11,10 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^4.16.18"
+    "@astrojs/react": "^3.6.3",
+    "astro": "^4.16.18",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "three": "^0.184.0"
   }
 }
