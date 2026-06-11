@@ -121,6 +121,14 @@ logging flow is still under 30 seconds.
   Claude Code session runs inside `jamal-os/`; the repo root settings
   are untouched because the repo is shared with the portfolio site
 
+## Lint command
+
+`npm run lint` maps to `next lint`, which requires an interactive ESLint
+setup on first run and was not configured in this session. Type safety is
+enforced by `npm run build` (full type-check) and correctness by
+`npm test`. Upgrade path: add `eslint` and `eslint-config-next` to
+devDependencies with a flat config, then lint runs non-interactively.
+
 ## Known limitations
 
 - Single user, no auth, local machine only (by design)
