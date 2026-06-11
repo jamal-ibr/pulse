@@ -157,3 +157,28 @@ devDependencies with a flat config, then lint runs non-interactively.
   for HTTPS.
 - `dev:lan` and `start:lan` scripts bind 0.0.0.0 for phone access on
   the same network.
+
+## Simplification and voice agent (June 2026)
+
+- Navigation flattened on request: six primary links (Daily Brief,
+  Pulse Pipeline, Tasks, Habits, Planner, Weekly Review) and a
+  collapsible More section for the remaining eleven routes. No pages
+  were deleted; everything stays reachable.
+- Daily Brief reduced to: hard-rule banner, brief, one metrics card,
+  Scary tasks, Today. Habit gaps, pipeline attention, overdue list,
+  and top project moved off the home screen; the brief text still
+  reports overdue counts, and each detail lives on its own page.
+- The grid backdrop was removed; only the top bloom remains.
+- Voice agent: floating orb in the shell, available on every page.
+  Intent parsing and deterministic answers are pure logic in
+  src/lib/assistant.ts (tested). Data questions (brief, pipeline,
+  avoidance, habits) are answered from SQLite without any AI call.
+  "Add a task to X" inserts a real task (pillar Systems, scariness 1).
+  Only free-form chat reaches the AI provider, through the existing
+  redaction and logging path with the voice-assistant prompt.
+- Speech uses the browser Web Speech API: SpeechRecognition for input
+  (Chrome sends audio to Google's recognition service; Safari is
+  mostly on-device; the agent degrades to text input where the API is
+  missing) and speechSynthesis for spoken replies, which can be muted.
+  No audio is stored and nothing new leaves the machine beyond what
+  the chosen recognition engine does.

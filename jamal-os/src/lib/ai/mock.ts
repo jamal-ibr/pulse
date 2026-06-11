@@ -54,6 +54,10 @@ export function mockComplete(promptName: PromptName, facts: string): string {
       return "Anchor the day around the five prayers and let work fit between them, not the reverse. Integrity in private is the standard. (Mock provider.)";
     case "mentor-tone":
       return "Direct, honest, strategic. State the gap between stated priority and logged behaviour, then give one concrete action. (Mock provider.)";
+    case "voice-assistant": {
+      const question = extractLine(facts, "question") ?? "that";
+      return `I can only answer from logged data, and the mock provider cannot reason about "${question}". Check the relevant page in Jamal OS, or add ANTHROPIC_API_KEY to .env.local for live voice answers.`;
+    }
     case "claude-code-tool-build":
       return "Scoped build prompt generated from the idea fields. Keep scope to the definition of done. No secrets, no em dashes, tests required. (Mock provider.)";
     default:

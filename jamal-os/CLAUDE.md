@@ -24,6 +24,9 @@ logged data and never flatter.
 - Editable prompt templates in `/prompts/*.txt`
 - Connector abstractions in `src/lib/email/` and `src/lib/calendar/`,
   mock-first; Gmail and Google Calendar are scaffolds
+- Voice agent: pure intent logic in `src/lib/assistant.ts`, server
+  action in `src/app/assistant/actions.ts`, UI orb in
+  `src/components/voice-agent.tsx`, Web Speech API in the browser
 - See `docs/architecture.md` for the full picture
 
 ## Commands

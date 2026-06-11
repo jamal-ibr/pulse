@@ -3,49 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const NAV_GROUPS: Array<{ label: string; items: Array<[string, string]> }> = [
-  {
-    label: "Command",
-    items: [
-      ["/", "Daily Brief"],
-      ["/planner", "Planner"],
-      ["/weekly-review", "Weekly Review"],
-      ["/level", "Level"],
-    ],
-  },
-  {
-    label: "Execution",
-    items: [
-      ["/pipeline", "Pulse Pipeline"],
-      ["/tasks", "Tasks"],
-      ["/projects", "Projects"],
-      ["/build-queue", "Build Queue"],
-    ],
-  },
-  {
-    label: "Body and Mind",
-    items: [
-      ["/habits", "Habits"],
-      ["/fitness", "Fitness"],
-      ["/reading", "Reading"],
-    ],
-  },
-  {
-    label: "Life",
-    items: [
-      ["/spending", "Spending"],
-      ["/contacts", "Contacts"],
-      ["/memory", "Memory"],
-    ],
-  },
-  {
-    label: "Inbox",
-    items: [
-      ["/email", "Email"],
-      ["/calendar", "Calendar"],
-      ["/settings", "Settings"],
-    ],
-  },
+const PRIMARY_NAV: Array<[string, string]> = [
+  ["/", "Daily Brief"],
+  ["/pipeline", "Pulse Pipeline"],
+  ["/tasks", "Tasks"],
+  ["/habits", "Habits"],
+  ["/planner", "Planner"],
+  ["/weekly-review", "Weekly Review"],
+];
+
+const MORE_NAV: Array<[string, string]> = [
+  ["/level", "Level"],
+  ["/projects", "Projects"],
+  ["/build-queue", "Build Queue"],
+  ["/fitness", "Fitness"],
+  ["/reading", "Reading"],
+  ["/spending", "Spending"],
+  ["/contacts", "Contacts"],
+  ["/memory", "Memory"],
+  ["/email", "Email"],
+  ["/calendar", "Calendar"],
+  ["/settings", "Settings"],
 ];
 
 const MOBILE_NAV: Array<[string, string, string]> = [
@@ -85,6 +63,21 @@ function NavLink({ href, label }: { href: string; label: string }) {
   );
 }
 
+function MoreSection() {
+  const pathname = usePathname();
+  const containsActive = MORE_NAV.some(([href]) => pathname === href);
+  return (
+    <details open={containsActive} className="pt-3">
+      <summary className="cursor-pointer list-none px-3 pb-1 font-mono text-[10px] font-semibold uppercase tracking-widest text-ink-faint transition hover:text-ink-dim">
+        More
+      </summary>
+      {MORE_NAV.map(([href, label]) => (
+        <NavLink key={href} href={href} label={label} />
+      ))}
+    </details>
+  );
+}
+
 export function Sidebar({ dataMode }: { dataMode: string }) {
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-56 flex-col border-r border-edge bg-panel/60 px-3 py-5 backdrop-blur-sm md:flex">
@@ -94,17 +87,11 @@ export function Sidebar({ dataMode }: { dataMode: string }) {
           Discipline. Strategy. Becoming.
         </div>
       </Link>
-      <nav className="mt-6 flex-1 space-y-5 overflow-y-auto">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.label}>
-            <div className="px-3 pb-1 font-mono text-[10px] font-semibold uppercase tracking-widest text-ink-faint">
-              {group.label}
-            </div>
-            {group.items.map(([href, label]) => (
-              <NavLink key={href} href={href} label={label} />
-            ))}
-          </div>
+      <nav className="mt-6 flex-1 space-y-0.5 overflow-y-auto">
+        {PRIMARY_NAV.map(([href, label]) => (
+          <NavLink key={href} href={href} label={label} />
         ))}
+        <MoreSection />
       </nav>
       <DataModeIndicator mode={dataMode} />
     </aside>

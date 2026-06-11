@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Sidebar, MobileNav, TopBar } from "@/components/shell";
 import { RegisterServiceWorker } from "@/components/register-sw";
+import { VoiceAgent } from "@/components/voice-agent";
 import { getSetting } from "@/lib/services/settings";
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ export default async function RootLayout({
           <div className="mx-auto max-w-5xl">{children}</div>
         </main>
         <MobileNav />
+        <VoiceAgent />
         <RegisterServiceWorker />
       </body>
     </html>

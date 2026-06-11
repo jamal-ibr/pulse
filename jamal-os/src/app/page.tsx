@@ -8,7 +8,6 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const data = await getDailyBriefData();
-  const scaryFlames = (n: number) => "!".repeat(n);
 
   return (
     <div className="space-y-4">
@@ -48,38 +47,37 @@ export default async function DashboardPage() {
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card>
+      <Card>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Stat
             label="Outreach this week"
             value={data.pipeline.outreachThisWeek}
             tone={data.pipeline.outreachThisWeek === 0 ? "danger" : "good"}
             hint="The primary metric"
           />
-        </Card>
-        <Card>
           <Stat
             label="Contacted practices"
             value={`${data.pipeline.contactedCount}/5`}
             tone={data.pipeline.contactedCount < 5 ? "danger" : "good"}
+            hint={
+              data.pipeline.followUpsOverdue > 0
+                ? `${data.pipeline.followUpsOverdue} follow-ups overdue`
+                : undefined
+            }
           />
-        </Card>
-        <Card>
           <Stat
             label="Takeaway, rolling 30d"
             value={data.takeawayRolling30}
             tone={data.takeawayRolling30 >= 8 ? "danger" : data.takeawayRolling30 >= 5 ? "warn" : "good"}
-            hint={`Baseline was ${TAKEAWAY_BASELINE.per30Days}. Never again.`}
+            hint={`Baseline was ${TAKEAWAY_BASELINE.per30Days}`}
           />
-        </Card>
-        <Card>
           <Stat
             label="Latest weight"
             value={data.weightTrend[0] ? `${data.weightTrend[0].weightKg}kg` : "Unlogged"}
             hint="Phase 1 target: 82kg"
           />
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -119,71 +117,8 @@ export default async function DashboardPage() {
           </div>
         </Card>
 
-        <Card>
-          <CardTitle href="/habits">Yesterday's gaps</CardTitle>
-          <div className="mt-3 space-y-1.5">
-            {data.habitGaps.length === 0 && (
-              <div className="text-sm text-accent">All targets met yesterday. Logged and verified.</div>
-            )}
-            {data.habitGaps.map((g) => (
-              <div key={g.habit} className="flex items-center justify-between text-sm">
-                <span className="text-ink-dim">{g.habit}</span>
-                <span className="text-xs text-warn">{g.detail}</span>
-              </div>
-            ))}
-            {data.sleep && (
-              <div className="mt-2 border-t border-edge pt-2 text-xs text-ink-faint">
-                Sleep: {data.sleep.sleepHours ?? "?"}h, lights out {data.sleep.lightsOutTime ?? "?"}
-              </div>
-            )}
-          </div>
-        </Card>
-
-        <Card>
-          <CardTitle href="/pipeline">Pipeline attention</CardTitle>
-          <div className="mt-3 space-y-2">
-            {data.pipelineOverdue.length === 0 ? (
-              <div className="text-sm text-ink-dim">No overdue follow-ups.</div>
-            ) : (
-              data.pipelineOverdue.map((p) => (
-                <div key={p.id} className="flex items-center justify-between text-sm">
-                  <span className="truncate">{p.practiceName}</span>
-                  <Badge tone="danger">Follow-up overdue</Badge>
-                </div>
-              ))
-            )}
-            {data.contactsOverdue.slice(0, 3).map((c) => (
-              <div key={c.id} className="flex items-center justify-between text-sm">
-                <span className="truncate text-ink-dim">{c.name}</span>
-                <Badge tone="warn">{c.daysOverdue}d overdue</Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
       </div>
 
-      {data.overdueTasks.length > 0 && (
-        <Card>
-          <CardTitle href="/tasks">Overdue ({data.overdueTasks.length})</CardTitle>
-          <div className="mt-3 space-y-1.5">
-            {data.overdueTasks.map((t) => (
-              <div key={t.id} className="flex items-center justify-between text-sm">
-                <span className="truncate">{t.title}</span>
-                <span className="text-xs text-danger">due {t.dueDate}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {data.topProject && (
-        <Card>
-          <CardTitle href={`/projects`}>Top project: {data.topProject.name}</CardTitle>
-          <div className="mt-2 text-sm text-ink-dim">
-            Next action: <span className="text-ink">{data.topProject.nextAction}</span>
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

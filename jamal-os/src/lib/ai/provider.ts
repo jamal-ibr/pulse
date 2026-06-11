@@ -18,7 +18,8 @@ export type PromptName =
   | "fitness-adjustment"
   | "spending-correction"
   | "faith-character-reflection"
-  | "claude-code-tool-build";
+  | "claude-code-tool-build"
+  | "voice-assistant";
 
 export function loadPrompt(name: PromptName): string {
   const promptPath = path.join(process.cwd(), "prompts", `${name}.txt`);

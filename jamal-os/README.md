@@ -21,6 +21,9 @@ Open http://localhost:3000. Everything works offline with seeded data and
 the mock AI provider. No API keys, no Docker, no cloud database, no auth
 provider.
 
+Tap the cyan orb on any page to talk to Jamal OS: ask for the brief,
+the pipeline, what you are avoiding, or say "add a task to ...".
+
 To use it on your phone, run `npm run dev:lan` and open
 `http://<your-computer-ip>:3000` on the same Wi-Fi, then add it to your
 home screen. Full details in [SETUP.md](SETUP.md).
