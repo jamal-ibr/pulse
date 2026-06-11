@@ -1,54 +1,56 @@
 /* ============================================================
-   Theme: Sky
-   Glassmorphism over a live WebGL ocean. Bright, airy, calm.
-   Content floats on frosted-glass panels above animated water.
+   Theme: Sky (Aurora)
+   Liquid aurora ribbons rendered in a full-screen shader. Content
+   sits on barely-there frosted glass with chromatic accent type.
    ============================================================ */
 
 html.theme-sky {
-  --bg: #b9e0fa;
-  --bg-soft: rgba(255, 255, 255, 0.5);
-  --text: #0b2a40;
-  --text-soft: #2f5670;
-  --text-muted: #54788e;
-  --accent: #0468a3;
-  --accent-2: #0aa3c2;
-  --line: rgba(11, 42, 64, 0.12);
-  --line-strong: rgba(11, 42, 64, 0.22);
+  --bg: #070314;
+  --bg-soft: rgba(255, 255, 255, 0.04);
+  --text: #f5f3ff;
+  --text-soft: #c8c4e8;
+  --text-muted: #8a86a8;
+  --accent: #b5e9ff;
+  --accent-2: #ff9ad6;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.18);
 
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  --body-weight: 400;
+  --body-weight: 300;
 
-  /* static fallback sky while WebGL loads (or if unavailable) */
-  background: linear-gradient(180deg, #8fcdf5 0%, #b9e0fa 45%, #d9f0fd 100%);
+  background: #070314;
 }
 
 html.theme-sky body {
   background: transparent;
+  color: var(--text);
 }
 
 html.theme-sky .texture {
   display: none;
 }
 
-::selection {
-  /* inherited from global */
-}
-
-/* ---- floating glass panels ---- */
+/* ---- glass shell, soft and continuous ---- */
 html.theme-sky .hero,
 html.theme-sky .section,
 html.theme-sky .cta-foot {
-  background: rgba(250, 253, 255, 0.55);
-  backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 26px;
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+  backdrop-filter: blur(22px) saturate(1.4);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 28px;
   margin-block: 1.25rem;
   padding-inline: clamp(1.5rem, 4vw, 3rem);
-  box-shadow: 0 18px 50px rgba(8, 60, 96, 0.12);
+  box-shadow:
+    0 30px 80px rgba(8, 4, 30, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 html.theme-sky .hero {
@@ -58,14 +60,18 @@ html.theme-sky .hero {
 
 html.theme-sky .section {
   padding-block: clamp(2.5rem, 6vw, 4.5rem);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* ---- glass header ---- */
 html.theme-sky .site-header {
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(7, 3, 20, 0.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+html.theme-sky .nav-links a {
+  color: var(--text-muted);
 }
 
 html.theme-sky .nav-links a:hover,
@@ -74,82 +80,111 @@ html.theme-sky .nav-links a[aria-current='page'] {
 }
 
 html.theme-sky .theme-switch {
-  background: rgba(255, 255, 255, 0.5);
-  border-color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+html.theme-sky .theme-switch button {
+  color: var(--text-muted);
 }
 
 html.theme-sky .theme-switch button[aria-pressed='true'] {
-  background: var(--accent);
-  color: #ffffff;
+  background: linear-gradient(120deg, #6fe4d1, #b18bff 60%, #ff8ed1);
+  color: #0b0820;
 }
 
-/* ---- type ---- */
+/* ---- chromatic display type ---- */
 html.theme-sky .hero h1 {
-  color: var(--text);
-  text-shadow: 0 2px 18px rgba(255, 255, 255, 0.6);
+  background: linear-gradient(110deg, #b5e9ff 0%, #b18bff 50%, #ff9ad6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 4px 30px rgba(177, 139, 255, 0.25));
+  font-style: italic;
+  font-weight: 400;
 }
 
-html.theme-sky .hero .lede em {
-  color: var(--accent);
+html.theme-sky .hero h1 .dot {
+  color: #ff9ad6;
+  background: none;
+  -webkit-background-clip: border-box;
+}
+
+html.theme-sky .hero .lede em,
+html.theme-sky .contact-hero h1 em {
+  background: linear-gradient(120deg, #6fe4d1, #b18bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   font-style: italic;
 }
 
+html.theme-sky .eyebrow {
+  color: var(--accent);
+}
+
 html.theme-sky .stat .num {
-  background: linear-gradient(120deg, #045a8d, #0aa3c2);
+  background: linear-gradient(120deg, #b5e9ff, #b18bff 60%, #ff9ad6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 20px rgba(177, 139, 255, 0.35));
+}
+
+/* ---- cards: soft glass tiles with chromatic edge on hover ---- */
+html.theme-sky .card {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.05) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  box-shadow: 0 14px 40px rgba(8, 4, 30, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: transform 0.18s ease, box-shadow 0.4s ease,
+    border-color 0.4s ease;
+  will-change: transform;
+}
+
+html.theme-sky .card:hover {
+  border-color: rgba(177, 139, 255, 0.4);
+  box-shadow: 0 24px 60px rgba(177, 139, 255, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+html.theme-sky .tag,
+html.theme-sky .pill {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--text-soft);
+  border-radius: 999px;
+}
+
+html.theme-sky .contact-row:hover .cvalue {
+  background: linear-gradient(120deg, #6fe4d1, #b18bff);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* ---- glass cards with depth ---- */
-html.theme-sky .card {
-  background: rgba(255, 255, 255, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(8, 60, 96, 0.1);
-  transition: transform 0.15s ease, box-shadow 0.3s ease;
-  will-change: transform;
-}
-
-html.theme-sky .card:hover {
-  border-color: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 24px 50px rgba(8, 60, 96, 0.18);
-}
-
-html.theme-sky .tag,
-html.theme-sky .pill {
-  background: rgba(255, 255, 255, 0.55);
-  border-color: rgba(11, 42, 64, 0.16);
-  border-radius: 999px;
-}
-
-html.theme-sky .contact-row:hover .cvalue {
-  color: var(--accent);
-}
-
 html.theme-sky .site-footer {
-  border-top: none;
-}
-
-html.theme-sky .site-footer .inner {
-  background: rgba(250, 253, 255, 0.55);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 18px;
-  padding: 1.25rem 1.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 html.theme-sky .site-footer .blessing {
+  background: linear-gradient(120deg, #6fe4d1, #b18bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   font-style: italic;
-  color: var(--accent);
 }
 
 @media (max-width: 720px) {
   html.theme-sky .hero,
   html.theme-sky .section,
   html.theme-sky .cta-foot {
-    border-radius: 18px;
+    border-radius: 22px;
     margin-inline: 0.5rem;
   }
 }

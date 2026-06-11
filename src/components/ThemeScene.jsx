@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * Full-viewport WebGL background for the Sky and Lava themes.
- * Three.js is dynamically imported only when one of those themes is
- * active, so the other three themes pay zero bundle cost.
+ * Full-viewport WebGL background driving the two scenic themes.
+ * Three.js loads only when an animated theme is active.
+ *
+ *   sky  → fluid aurora ribbons over a midnight gradient (full-screen
+ *          shader; no terrain). A modern liquid-color UI field.
+ *   lava → ridged molten terrain with crack-flow, ember particles and
+ *          deep atmospheric fade so the silhouette never cuts hard.
  */
 
 const SCENIC = ['sky', 'lava'];
 
-// Compact 2D simplex noise (Ashima Arts, MIT) shared by both shaders
 const GLSL_NOISE = /* glsl */ `
 vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
 float snoise(vec2 v) {
@@ -45,48 +48,52 @@ float fbm(vec2 p) {
 }
 `;
 
-function buildLava(THREE, mount, motionOk) {
+function buildLava(THREE) {
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x070403, 8, 42);
 
   const camera = new THREE.PerspectiveCamera(
-    55,
+    52,
     window.innerWidth / window.innerHeight,
     0.1,
-    100
+    200
   );
-  camera.position.set(0, 5.2, 13);
-  camera.lookAt(0, 1.2, 0);
+  // sit low so the plane fills the lower 2/3 and the back fades into night
+  camera.position.set(0, 3.6, 10);
+  camera.lookAt(0, 1.4, 0);
 
-  const segments = window.innerWidth < 700 ? 110 : 180;
-  const geo = new THREE.PlaneGeometry(70, 50, segments, segments);
-
+  const segments = window.innerWidth < 700 ? 140 : 220;
+  const geo = new THREE.PlaneGeometry(180, 140, segments, segments);
   const uniforms = { uTime: { value: 0 } };
+
   const terrain = new THREE.Mesh(
     geo,
     new THREE.ShaderMaterial({
       uniforms,
-      fog: false,
       vertexShader: /* glsl */ `
         ${GLSL_NOISE}
         varying float vH;
         varying float vCrack;
         varying vec3 vPos;
+        varying float vDepth;
         void main() {
           vec3 p = position;
-          // ridged fbm: sharp dark peaks with valleys between
-          float n = fbm(p.xy * 0.085);
+          // ridged fbm with smoother power for cinematic ridges
+          float n = fbm(p.xy * 0.055);
           float ridge = 1.0 - abs(n);
-          ridge = pow(ridge, 2.2);
-          // taller ridge band across the middle, like a mountain spine
-          float spine = exp(-pow(p.y * 0.05, 2.0)) * 5.5 + 0.6;
+          ridge = pow(ridge, 1.7);
+          // wide spine across the foreground that decays toward background
+          float spine = exp(-pow(p.y * 0.045, 2.0)) * 4.6 + 0.4;
           float h = ridge * spine;
+          // pull distant geometry downward so it never breaks the horizon
+          float distFade = smoothstep(20.0, 70.0, abs(p.y));
+          h *= (1.0 - distFade);
           vH = h;
-          // crack mask: deepest creases between ridges carry the lava
-          vCrack = smoothstep(0.32, 0.02, abs(n));
+          vCrack = smoothstep(0.30, 0.02, abs(n));
           p.z += h;
           vPos = p;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          vDepth = -mv.z;
+          gl_Position = projectionMatrix * mv;
         }
       `,
       fragmentShader: /* glsl */ `
@@ -95,19 +102,23 @@ function buildLava(THREE, mount, motionOk) {
         varying float vH;
         varying float vCrack;
         varying vec3 vPos;
+        varying float vDepth;
         void main() {
-          // charcoal rock, slightly lighter on high ridges
-          vec3 rock = mix(vec3(0.025, 0.02, 0.018), vec3(0.16, 0.14, 0.13),
-                          smoothstep(0.0, 5.5, vH));
-          // molten flow pulsing through the cracks
-          float flow = fbm(vPos.xy * 0.22 + vec2(uTime * 0.05, uTime * 0.018));
-          float heat = vCrack * smoothstep(-0.25, 0.75, flow);
-          vec3 lava = mix(vec3(0.55, 0.06, 0.01), vec3(1.0, 0.55, 0.12),
-                          smoothstep(0.2, 0.95, heat));
-          vec3 col = rock + lava * heat * 2.4;
-          // fade into black with distance, like the reference shot
-          float fogF = smoothstep(8.0, 40.0, length(vPos - vec3(0.0, 0.0, 13.0)));
-          col = mix(col, vec3(0.027, 0.016, 0.012), fogF);
+          vec3 rock = mix(vec3(0.018, 0.012, 0.010), vec3(0.13, 0.10, 0.09),
+                          smoothstep(0.0, 4.6, vH));
+          // slow, painterly lava flow
+          float flow = fbm(vPos.xy * 0.18 + vec2(uTime * 0.025, uTime * 0.012));
+          float heat = vCrack * smoothstep(-0.3, 0.7, flow);
+          vec3 lavaLo = vec3(0.48, 0.07, 0.02);
+          vec3 lavaHi = vec3(1.00, 0.55, 0.18);
+          vec3 lava = mix(lavaLo, lavaHi, smoothstep(0.25, 0.95, heat));
+          vec3 col = rock + lava * heat * 1.9;
+          // deep atmospheric fade to black — no hard silhouette
+          float fogF = smoothstep(7.0, 55.0, vDepth);
+          col = mix(col, vec3(0.012, 0.006, 0.005), fogF);
+          // ember haze near horizon, very subtle
+          col += vec3(0.32, 0.10, 0.04) * smoothstep(25.0, 50.0, vDepth)
+                                       * (1.0 - smoothstep(45.0, 70.0, vDepth)) * 0.12;
           gl_FragColor = vec4(col, 1.0);
         }
       `,
@@ -116,12 +127,11 @@ function buildLava(THREE, mount, motionOk) {
   terrain.rotation.x = -Math.PI / 2;
   scene.add(terrain);
 
-  // rising embers
-  const COUNT = window.innerWidth < 700 ? 160 : 320;
+  const COUNT = window.innerWidth < 700 ? 140 : 280;
   const pos = new Float32Array(COUNT * 3);
   const seed = new Float32Array(COUNT);
   for (let i = 0; i < COUNT; i++) {
-    pos[i * 3] = (Math.random() - 0.5) * 50;
+    pos[i * 3] = (Math.random() - 0.5) * 60;
     pos[i * 3 + 1] = Math.random() * 14;
     pos[i * 3 + 2] = (Math.random() - 0.5) * 36;
     seed[i] = Math.random();
@@ -142,12 +152,12 @@ function buildLava(THREE, mount, motionOk) {
         varying float vA;
         void main() {
           vec3 p = position;
-          float life = fract(aSeed + uTime * (0.025 + aSeed * 0.04));
+          float life = fract(aSeed + uTime * (0.02 + aSeed * 0.03));
           p.y = life * 14.0;
-          p.x += sin(uTime * 0.6 + aSeed * 40.0) * 0.8;
-          vA = (1.0 - life) * 0.85;
+          p.x += sin(uTime * 0.5 + aSeed * 40.0) * 0.9;
+          vA = (1.0 - life) * 0.75;
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          gl_PointSize = (2.5 + aSeed * 3.0) * (12.0 / -mv.z);
+          gl_PointSize = (2.2 + aSeed * 2.8) * (10.0 / -mv.z);
           gl_Position = projectionMatrix * mv;
         }
       `,
@@ -156,126 +166,125 @@ function buildLava(THREE, mount, motionOk) {
         void main() {
           float d = length(gl_PointCoord - 0.5);
           if (d > 0.5) discard;
-          gl_FragColor = vec4(1.0, 0.5, 0.15, vA * (1.0 - d * 2.0));
+          gl_FragColor = vec4(1.0, 0.5, 0.18, vA * (1.0 - d * 2.0));
         }
       `,
     })
   );
   scene.add(embers);
 
-  return { scene, camera, uniforms, clearColor: 0x070403 };
+  return {
+    scene,
+    camera,
+    uniforms,
+    clearColor: 0x050302,
+    parallax: { x: 1.4, y: 0.6, lookY: 1.4 },
+  };
 }
 
-function buildSky(THREE, mount, motionOk) {
+/**
+ * Aurora: a full-screen liquid-color field rendered as a fragment shader
+ * on a screen-aligned plane. Modern, fluid, and nothing to do with a
+ * literal ocean.
+ */
+function buildAurora(THREE) {
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xcfeaff, 10, 60);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const uniforms = {
+    uTime: { value: 0 },
+    uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+    uAspect: { value: window.innerWidth / window.innerHeight },
+  };
 
-  const camera = new THREE.PerspectiveCamera(
-    55,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    120
-  );
-  camera.position.set(0, 4.5, 14);
-  camera.lookAt(0, 0.5, 0);
-
-  const segments = window.innerWidth < 700 ? 96 : 150;
-  const geo = new THREE.PlaneGeometry(90, 70, segments, segments);
-  const uniforms = { uTime: { value: 0 } };
-
-  const water = new THREE.Mesh(
-    geo,
+  const quad = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
     new THREE.ShaderMaterial({
       uniforms,
       vertexShader: /* glsl */ `
-        ${GLSL_NOISE}
-        uniform float uTime;
-        varying float vH;
-        varying vec3 vPos;
+        varying vec2 vUv;
         void main() {
-          vec3 p = position;
-          float t = uTime;
-          // layered travelling waves plus noise chop
-          float h = sin(p.x * 0.32 + t * 0.9) * 0.45
-                  + sin((p.x + p.y) * 0.18 - t * 0.6) * 0.6
-                  + sin(p.y * 0.42 + t * 1.3) * 0.25
-                  + snoise(p.xy * 0.12 + vec2(t * 0.08)) * 0.5;
-          p.z += h;
-          vH = h;
-          vPos = p;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+          vUv = uv;
+          gl_Position = vec4(position, 1.0);
         }
       `,
       fragmentShader: /* glsl */ `
         ${GLSL_NOISE}
         uniform float uTime;
-        varying float vH;
-        varying vec3 vPos;
+        uniform vec2 uMouse;
+        uniform float uAspect;
+        varying vec2 vUv;
+
+        // signed distance from a flowing ribbon centerline
+        float ribbon(vec2 p, float baseY, float phase, float freq,
+                     float speed, float thickness) {
+          float y = baseY
+                  + sin(p.x * freq + uTime * speed + phase) * 0.14
+                  + sin(p.x * freq * 0.43 - uTime * speed * 0.6 + phase) * 0.09
+                  + fbm(vec2(p.x * 1.6, uTime * 0.18 + phase)) * 0.08;
+          float d = abs(p.y - y);
+          // soft falloff with a brighter spine
+          float band = smoothstep(thickness, 0.0, d);
+          band += smoothstep(thickness * 0.45, 0.0, d) * 0.45;
+          return band;
+        }
+
         void main() {
-          // deep teal troughs to bright aqua crests
-          vec3 deep = vec3(0.05, 0.35, 0.55);
-          vec3 crest = vec3(0.62, 0.88, 0.97);
-          vec3 col = mix(deep, crest, smoothstep(-1.4, 1.6, vH));
-          // moving sun glints on the crests
-          float glint = snoise(vPos.xy * 1.4 + vec2(uTime * 0.35, 0.0));
-          col += vec3(1.0) * smoothstep(0.82, 0.99, glint) * smoothstep(0.4, 1.4, vH) * 0.7;
-          // haze toward the horizon
-          float fogF = smoothstep(6.0, 55.0, length(vPos - vec3(0.0, 0.0, 14.0)));
-          col = mix(col, vec3(0.81, 0.92, 1.0), fogF);
+          // aspect-corrected coords so ribbons don't stretch
+          vec2 p = vUv;
+          p.x = (p.x - 0.5) * uAspect + 0.5;
+
+          // deep midnight base with subtle vertical gradient
+          vec3 col = mix(vec3(0.04, 0.02, 0.10),
+                         vec3(0.02, 0.01, 0.05), p.y);
+
+          // four overlapping aurora bands at different heights and tempos
+          float r1 = ribbon(p, 0.62, 0.0, 5.5, 0.32, 0.12);
+          float r2 = ribbon(p, 0.50, 1.7, 7.0, 0.42, 0.10);
+          float r3 = ribbon(p, 0.42, 3.1, 4.2, 0.27, 0.09);
+          float r4 = ribbon(p, 0.72, 5.3, 9.0, 0.22, 0.07);
+
+          vec3 cTeal    = vec3(0.20, 0.95, 0.78);
+          vec3 cIndigo  = vec3(0.40, 0.55, 1.00);
+          vec3 cMagenta = vec3(0.95, 0.35, 0.85);
+          vec3 cLime    = vec3(0.65, 1.00, 0.55);
+
+          col += cTeal    * r1 * 1.25;
+          col += cIndigo  * r2 * 1.10;
+          col += cMagenta * r3 * 0.95;
+          col += cLime    * r4 * 0.55;
+
+          // soft chromatic bloom across the field
+          float glow = (r1 + r2 + r3 + r4);
+          col += mix(cIndigo, cMagenta, sin(uTime * 0.4) * 0.5 + 0.5)
+                 * glow * 0.08;
+
+          // cursor halo: aurora gathers toward the pointer
+          vec2 m = uMouse; m.x = (m.x - 0.5) * uAspect + 0.5;
+          float md = distance(p, m);
+          col += cTeal * smoothstep(0.45, 0.0, md) * 0.10;
+
+          // film-grain dither to kill banding
+          float grain = fract(sin(dot(vUv * 800.0, vec2(12.9898, 78.233)))
+                              * 43758.5453);
+          col += (grain - 0.5) * 0.02;
+
+          // Reinhard tone map for clean highlights
+          col = col / (1.0 + col);
+
           gl_FragColor = vec4(col, 1.0);
         }
       `,
     })
   );
-  water.rotation.x = -Math.PI / 2;
-  water.position.y = -0.5;
-  scene.add(water);
+  scene.add(quad);
 
-  // drifting cloud puffs: soft white sprites high above the water
-  const COUNT = window.innerWidth < 700 ? 40 : 80;
-  const pos = new Float32Array(COUNT * 3);
-  const seed = new Float32Array(COUNT);
-  for (let i = 0; i < COUNT; i++) {
-    pos[i * 3] = (Math.random() - 0.5) * 80;
-    pos[i * 3 + 1] = 6 + Math.random() * 10;
-    pos[i * 3 + 2] = -10 - Math.random() * 40;
-    seed[i] = Math.random();
-  }
-  const cGeo = new THREE.BufferGeometry();
-  cGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  cGeo.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1));
-  const clouds = new THREE.Points(
-    cGeo,
-    new THREE.ShaderMaterial({
-      uniforms,
-      transparent: true,
-      depthWrite: false,
-      vertexShader: /* glsl */ `
-        uniform float uTime;
-        attribute float aSeed;
-        varying float vA;
-        void main() {
-          vec3 p = position;
-          p.x = mod(p.x + uTime * (0.3 + aSeed * 0.5) + 40.0, 80.0) - 40.0;
-          vA = 0.16 + aSeed * 0.2;
-          vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          gl_PointSize = (26.0 + aSeed * 40.0) * (14.0 / -mv.z);
-          gl_Position = projectionMatrix * mv;
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        varying float vA;
-        void main() {
-          float d = length(gl_PointCoord - 0.5);
-          if (d > 0.5) discard;
-          gl_FragColor = vec4(1.0, 1.0, 1.0, vA * pow(1.0 - d * 2.0, 2.0));
-        }
-      `,
-    })
-  );
-  scene.add(clouds);
-
-  return { scene, camera, uniforms, clearColor: 0xb9e0fa };
+  return {
+    scene,
+    camera,
+    uniforms,
+    clearColor: 0x070314,
+    parallax: { x: 0, y: 0, lookY: 0, mouse: true },
+  };
 }
 
 export default function ThemeScene() {
@@ -304,43 +313,59 @@ export default function ThemeScene() {
       const renderer = new THREE.WebGLRenderer({
         antialias: true,
         powerPreference: 'high-performance',
+        alpha: false,
       });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
       mount.appendChild(renderer.domElement);
 
-      const build = theme === 'lava' ? buildLava : buildSky;
-      const { scene, camera, uniforms, clearColor } = build(
-        THREE,
-        mount,
-        motionOk
-      );
+      const build = theme === 'lava' ? buildLava : buildAurora;
+      const { scene, camera, uniforms, clearColor, parallax } = build(THREE);
       renderer.setClearColor(clearColor, 1);
 
-      // pointer parallax: camera drifts gently toward the cursor
       const target = { x: 0, y: 0 };
-      const base = { x: camera.position.x, y: camera.position.y };
+      const mouseUv = { x: 0.5, y: 0.5 };
       const onPointer = (e) => {
         target.x = (e.clientX / window.innerWidth - 0.5) * 2;
         target.y = (e.clientY / window.innerHeight - 0.5) * 2;
+        mouseUv.x = e.clientX / window.innerWidth;
+        mouseUv.y = 1 - e.clientY / window.innerHeight;
       };
       window.addEventListener('pointermove', onPointer, { passive: true });
 
+      const baseX = camera.position.x;
+      const baseY = camera.position.y;
+
       const onResize = () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
+        if (camera.isPerspectiveCamera) {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+        }
+        if (uniforms.uAspect) {
+          uniforms.uAspect.value = window.innerWidth / window.innerHeight;
+        }
         renderer.setSize(window.innerWidth, window.innerHeight);
       };
       window.addEventListener('resize', onResize);
 
       let raf = 0;
       const clock = new THREE.Clock();
-      const lookY = theme === 'lava' ? 1.2 : 0.5;
       const frame = () => {
-        uniforms.uTime.value = clock.getElapsedTime();
-        camera.position.x += (base.x + target.x * 1.6 - camera.position.x) * 0.04;
-        camera.position.y += (base.y - target.y * 0.8 - camera.position.y) * 0.04;
-        camera.lookAt(0, lookY, 0);
+        const t = clock.getElapsedTime();
+        uniforms.uTime.value = t;
+        if (parallax.mouse && uniforms.uMouse) {
+          uniforms.uMouse.value.x +=
+            (mouseUv.x - uniforms.uMouse.value.x) * 0.06;
+          uniforms.uMouse.value.y +=
+            (mouseUv.y - uniforms.uMouse.value.y) * 0.06;
+        }
+        if (camera.isPerspectiveCamera) {
+          camera.position.x +=
+            (baseX + target.x * parallax.x - camera.position.x) * 0.04;
+          camera.position.y +=
+            (baseY - target.y * parallax.y - camera.position.y) * 0.04;
+          camera.lookAt(0, parallax.lookY, 0);
+        }
         renderer.render(scene, camera);
         if (motionOk) raf = requestAnimationFrame(frame);
       };

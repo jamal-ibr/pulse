@@ -1,19 +1,20 @@
 /* ============================================================
    Theme: Lava
-   Molten terrain WebGL scene. Charcoal rock, ember glow, serif
-   headlines floating over the ridge like the reference shot.
+   Molten terrain WebGL scene. Cinematic dark, glowing italic
+   headlines, ember-lit cards. Panels float with soft glass, no
+   harsh box edges.
    ============================================================ */
 
 html.theme-lava {
-  --bg: #070403;
-  --bg-soft: rgba(18, 11, 8, 0.55);
-  --text: #f0e3d4;
-  --text-soft: #c2a890;
+  --bg: #050302;
+  --bg-soft: rgba(20, 12, 8, 0.5);
+  --text: #f3e6d6;
+  --text-soft: #c3a890;
   --text-muted: #84705f;
-  --accent: #ff7a3d;
-  --accent-2: #ff3d2e;
-  --line: rgba(255, 150, 90, 0.12);
-  --line-strong: rgba(255, 150, 90, 0.28);
+  --accent: #ff8a4a;
+  --accent-2: #ff4f2a;
+  --line: rgba(255, 150, 90, 0.10);
+  --line-strong: rgba(255, 150, 90, 0.22);
 
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Inter', system-ui, sans-serif;
@@ -21,7 +22,7 @@ html.theme-lava {
 
   --body-weight: 300;
 
-  background: #070403;
+  background: #050302;
 }
 
 html.theme-lava body {
@@ -32,37 +33,61 @@ html.theme-lava .texture {
   display: none;
 }
 
-/* ---- smoked-glass panels over the terrain ---- */
+/* radial vignette over the scene for cinematic depth */
+html.theme-lava::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+      ellipse 80% 60% at 50% 35%,
+      transparent 0%,
+      rgba(5, 3, 2, 0.55) 100%
+    );
+}
+
+/* ---- panels: soft smoked glass, no harsh borders ---- */
 html.theme-lava .hero,
 html.theme-lava .section,
 html.theme-lava .cta-foot {
-  background: rgba(10, 6, 4, 0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 140, 80, 0.1);
-  border-radius: 18px;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 5, 3, 0.35) 0%,
+    rgba(10, 5, 3, 0.55) 100%
+  );
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 140, 80, 0.08);
+  border-radius: 22px;
   margin-block: 1.25rem;
   padding-inline: clamp(1.5rem, 4vw, 3rem);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 170, 110, 0.06);
 }
 
+/* hero floats freely over the terrain — no panel */
 html.theme-lava .hero {
-  padding-block: clamp(3.5rem, 10vw, 7rem);
-  margin-top: 2rem;
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   border: none;
+  box-shadow: none;
+  padding-block: clamp(4rem, 12vw, 8rem);
+  margin-top: 1.5rem;
 }
 
 html.theme-lava .section {
   padding-block: clamp(2.5rem, 6vw, 4.5rem);
+  border-top: 1px solid rgba(255, 140, 80, 0.06);
 }
 
-/* ---- header ---- */
 html.theme-lava .site-header {
-  background: rgba(7, 4, 3, 0.6);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 140, 80, 0.12);
+  background: rgba(5, 3, 2, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255, 140, 80, 0.10);
 }
 
 html.theme-lava .nav-links a:hover,
@@ -71,15 +96,19 @@ html.theme-lava .nav-links a[aria-current='page'] {
 }
 
 html.theme-lava .theme-switch button[aria-pressed='true'] {
-  background: linear-gradient(120deg, #ff5a2e, #ff9d45);
+  background: linear-gradient(120deg, #ff5a2e, #ffb35c);
   color: #160803;
 }
 
-/* ---- molten type, serif and glowing like the reference ---- */
+/* ---- glowing italic display type ---- */
 html.theme-lava .hero h1 {
   font-style: italic;
   font-weight: 400;
-  text-shadow: 0 0 50px rgba(255, 110, 40, 0.35);
+  background: linear-gradient(180deg, #fff5e8 0%, #ffd9b0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 35px rgba(255, 130, 60, 0.35));
 }
 
 html.theme-lava .hero h1 .dot {
@@ -89,7 +118,8 @@ html.theme-lava .hero h1 .dot {
   color: transparent;
 }
 
-html.theme-lava .hero .lede em {
+html.theme-lava .hero .lede em,
+html.theme-lava .contact-hero h1 em {
   font-style: italic;
   background: linear-gradient(120deg, #ff6a35, #ffc06a);
   -webkit-background-clip: text;
@@ -99,7 +129,8 @@ html.theme-lava .hero .lede em {
 
 html.theme-lava .eyebrow {
   color: var(--accent);
-  text-shadow: 0 0 24px rgba(255, 110, 40, 0.5);
+  letter-spacing: 0.28em;
+  text-shadow: 0 0 18px rgba(255, 130, 60, 0.4);
 }
 
 html.theme-lava .stat .num {
@@ -112,18 +143,26 @@ html.theme-lava .stat .num {
 
 /* ---- ember-lit cards ---- */
 html.theme-lava .card {
-  background: rgba(16, 10, 7, 0.6);
-  border: 1px solid rgba(255, 140, 80, 0.18);
-  border-radius: 14px;
-  transition: transform 0.15s ease, box-shadow 0.3s ease,
-    border-color 0.3s ease;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 10, 6, 0.55) 0%,
+    rgba(14, 7, 4, 0.7) 100%
+  );
+  border: 1px solid rgba(255, 140, 80, 0.14);
+  border-radius: 18px;
+  transition: transform 0.18s ease, box-shadow 0.4s ease,
+    border-color 0.4s ease;
   will-change: transform;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 170, 110, 0.06);
 }
 
 html.theme-lava .card:hover {
-  border-color: rgba(255, 140, 80, 0.55);
-  box-shadow: 0 0 40px rgba(255, 90, 30, 0.22),
-    inset 0 0 30px rgba(255, 90, 30, 0.05);
+  border-color: rgba(255, 140, 80, 0.5);
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.5),
+    0 0 50px rgba(255, 90, 30, 0.22),
+    inset 0 1px 0 rgba(255, 170, 110, 0.15);
 }
 
 html.theme-lava .card .kind {
@@ -132,9 +171,10 @@ html.theme-lava .card .kind {
 
 html.theme-lava .tag,
 html.theme-lava .pill {
-  border-color: rgba(255, 140, 80, 0.22);
+  border-color: rgba(255, 140, 80, 0.18);
   border-radius: 999px;
-  background: rgba(255, 110, 40, 0.06);
+  background: rgba(255, 110, 40, 0.05);
+  color: var(--text-soft);
 }
 
 html.theme-lava .contact-row:hover .cvalue {
@@ -148,7 +188,7 @@ html.theme-lava .cta-foot a:hover {
 }
 
 html.theme-lava .site-footer {
-  border-top: 1px solid rgba(255, 140, 80, 0.12);
+  border-top: 1px solid rgba(255, 140, 80, 0.10);
 }
 
 html.theme-lava .site-footer .blessing {
@@ -163,7 +203,7 @@ html.theme-lava .site-footer .blessing {
   html.theme-lava .hero,
   html.theme-lava .section,
   html.theme-lava .cta-foot {
-    border-radius: 14px;
+    border-radius: 18px;
     margin-inline: 0.5rem;
   }
 }
