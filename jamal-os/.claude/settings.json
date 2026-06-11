@@ -1,22 +1,21 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "allow": [
       "Bash(npm run dev:*)",
       "Bash(npm run build:*)",
       "Bash(npm test:*)",
-      "Bash(npm run test:*)",
       "Bash(npm run lint:*)",
       "Bash(npm run db:generate:*)",
       "Bash(npm run db:migrate:*)",
       "Bash(npm run db:seed:*)",
       "Bash(npm run db:studio:*)",
-      "Bash(npx drizzle-kit:*)",
       "Bash(npx vitest:*)"
     ],
     "deny": [
-      "Read(./.env.local)",
-      "Read(./.env)",
-      "Read(./data/**)"
+      "Read(.env.local)",
+      "Read(.env)",
+      "Read(data/**)"
     ]
   },
   "hooks": {
@@ -25,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Reminder: run npm test and npm run build before claiming completion. See CLAUDE.md definition of done.'"
+            "command": "echo 'Jamal OS reminder: run npm test and npm run build before claiming work is done.'"
           }
         ]
       }
