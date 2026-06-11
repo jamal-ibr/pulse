@@ -16,13 +16,32 @@ html.theme-lava {
   --line: rgba(255, 150, 90, 0.10);
   --line-strong: rgba(255, 150, 90, 0.22);
 
-  --font-display: 'Fraunces', Georgia, serif;
+  --font-display: 'Big Shoulders Display', 'Inter', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
   --body-weight: 300;
 
   background: #050302;
+}
+
+html.theme-lava h1,
+html.theme-lava h2,
+html.theme-lava h3 {
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  font-style: normal !important;
+  line-height: 0.95;
+}
+
+html.theme-lava .wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 1.2rem;
 }
 
 html.theme-lava body {
@@ -100,19 +119,24 @@ html.theme-lava .theme-switch button[aria-pressed='true'] {
   color: #160803;
 }
 
-/* ---- glowing italic display type ---- */
+/* ---- monumental display type: chunky, raw, industrial ---- */
 html.theme-lava .hero h1 {
-  font-style: italic;
-  font-weight: 400;
-  background: linear-gradient(180deg, #fff5e8 0%, #ffd9b0 100%);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+  font-size: clamp(3rem, 11vw, 7rem);
+  line-height: 0.9;
+  background: linear-gradient(180deg, #fff2dc 0%, #f4c98b 60%, #d98444 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 0 35px rgba(255, 130, 60, 0.35));
+  filter: drop-shadow(0 0 38px rgba(255, 130, 60, 0.4));
 }
 
 html.theme-lava .hero h1 .dot {
-  background: linear-gradient(120deg, #ff5a2e, #ffb35c);
+  background: linear-gradient(180deg, #ff7a2a, #ffb35c);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -120,8 +144,9 @@ html.theme-lava .hero h1 .dot {
 
 html.theme-lava .hero .lede em,
 html.theme-lava .contact-hero h1 em {
-  font-style: italic;
-  background: linear-gradient(120deg, #ff6a35, #ffc06a);
+  font-style: normal;
+  font-weight: 600;
+  background: linear-gradient(120deg, #ff7a35, #ffc06a);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -134,11 +159,50 @@ html.theme-lava .eyebrow {
 }
 
 html.theme-lava .stat .num {
-  background: linear-gradient(120deg, #ff5a2e, #ffb35c);
+  font-family: var(--font-display);
+  font-weight: 800;
+  background: linear-gradient(180deg, #fff2dc 0%, #ff8a3a 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 0 18px rgba(255, 110, 40, 0.35));
+}
+
+html.theme-lava .now-item h3,
+html.theme-lava .writing-item .title,
+html.theme-lava .cta-foot a {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+html.theme-lava .card h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.012em;
+}
+
+html.theme-lava .contact-row .cvalue {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+html.theme-lava .lead-para {
+  font-family: var(--font-body);
+  font-style: normal;
+}
+
+html.theme-lava .beliefs li {
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
 }
 
 /* ---- ember-lit cards ---- */
@@ -192,8 +256,13 @@ html.theme-lava .site-footer {
 }
 
 html.theme-lava .site-footer .blessing {
-  font-style: italic;
-  background: linear-gradient(120deg, #ff6a35, #ffc06a);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-style: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.85rem;
+  background: linear-gradient(120deg, #ff7a35, #ffc06a);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

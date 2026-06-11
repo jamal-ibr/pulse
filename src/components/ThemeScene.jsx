@@ -39,12 +39,31 @@ float snoise(vec2 v) {
 float fbm(vec2 p) {
   float v = 0.0;
   float a = 0.5;
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 6; i++) {
     v += a * snoise(p);
     p *= 2.05;
     a *= 0.5;
   }
   return v;
+}
+// Worley / cellular noise — gives rock its faceted, fractured surface.
+vec2 hash2(vec2 p) {
+  p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+  return fract(sin(p) * 43758.5453);
+}
+float worley(vec2 p) {
+  vec2 n = floor(p);
+  vec2 f = fract(p);
+  float d = 1.0;
+  for (int j = -1; j <= 1; j++) {
+    for (int i = -1; i <= 1; i++) {
+      vec2 g = vec2(float(i), float(j));
+      vec2 o = hash2(n + g);
+      vec2 r = g + o - f;
+      d = min(d, dot(r, r));
+    }
+  }
+  return sqrt(d);
 }
 `;
 
@@ -52,78 +71,125 @@ function buildLava(THREE) {
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(
-    52,
+    48,
     window.innerWidth / window.innerHeight,
     0.1,
-    200
+    220
   );
-  // sit low so the plane fills the lower 2/3 and the back fades into night
-  camera.position.set(0, 3.6, 10);
-  camera.lookAt(0, 1.4, 0);
+  camera.position.set(0, 4.6, 13.5);
+  camera.lookAt(0, 1.8, 0);
 
-  const segments = window.innerWidth < 700 ? 140 : 220;
-  const geo = new THREE.PlaneGeometry(180, 140, segments, segments);
+  const segments = window.innerWidth < 700 ? 160 : 260;
+  const geo = new THREE.PlaneGeometry(200, 160, segments, segments);
   const uniforms = { uTime: { value: 0 } };
 
-  const terrain = new THREE.Mesh(
-    geo,
-    new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader: /* glsl */ `
-        ${GLSL_NOISE}
-        varying float vH;
-        varying float vCrack;
-        varying vec3 vPos;
-        varying float vDepth;
-        void main() {
-          vec3 p = position;
-          // ridged fbm with smoother power for cinematic ridges
-          float n = fbm(p.xy * 0.055);
-          float ridge = 1.0 - abs(n);
-          ridge = pow(ridge, 1.7);
-          // wide spine across the foreground that decays toward background
-          float spine = exp(-pow(p.y * 0.045, 2.0)) * 4.6 + 0.4;
-          float h = ridge * spine;
-          // pull distant geometry downward so it never breaks the horizon
-          float distFade = smoothstep(20.0, 70.0, abs(p.y));
-          h *= (1.0 - distFade);
-          vH = h;
-          vCrack = smoothstep(0.30, 0.02, abs(n));
-          p.z += h;
-          vPos = p;
-          vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          vDepth = -mv.z;
-          gl_Position = projectionMatrix * mv;
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        ${GLSL_NOISE}
-        uniform float uTime;
-        varying float vH;
-        varying float vCrack;
-        varying vec3 vPos;
-        varying float vDepth;
-        void main() {
-          vec3 rock = mix(vec3(0.018, 0.012, 0.010), vec3(0.13, 0.10, 0.09),
-                          smoothstep(0.0, 4.6, vH));
-          // slow, painterly lava flow
-          float flow = fbm(vPos.xy * 0.18 + vec2(uTime * 0.025, uTime * 0.012));
-          float heat = vCrack * smoothstep(-0.3, 0.7, flow);
-          vec3 lavaLo = vec3(0.48, 0.07, 0.02);
-          vec3 lavaHi = vec3(1.00, 0.55, 0.18);
-          vec3 lava = mix(lavaLo, lavaHi, smoothstep(0.25, 0.95, heat));
-          vec3 col = rock + lava * heat * 1.9;
-          // deep atmospheric fade to black — no hard silhouette
-          float fogF = smoothstep(7.0, 55.0, vDepth);
-          col = mix(col, vec3(0.012, 0.006, 0.005), fogF);
-          // ember haze near horizon, very subtle
-          col += vec3(0.32, 0.10, 0.04) * smoothstep(25.0, 50.0, vDepth)
-                                       * (1.0 - smoothstep(45.0, 70.0, vDepth)) * 0.12;
-          gl_FragColor = vec4(col, 1.0);
-        }
-      `,
-    })
-  );
+  const terrainMat = new THREE.ShaderMaterial({
+    uniforms,
+    vertexShader: /* glsl */ `
+      ${GLSL_NOISE}
+      varying float vH;
+      varying float vMacro;
+      varying float vCells;
+      varying float vMicro;
+      varying vec3 vWorldPos;
+      varying float vDepth;
+      void main() {
+        vec3 p = position;
+        // macro spine: wide foreground ridge that decays toward back
+        float spine = exp(-pow(p.y * 0.04, 2.0)) * 4.0 + 0.55;
+        // ridged fbm = the mountain ranges
+        float macro = fbm(p.xy * 0.065);
+        float ridge = 1.0 - abs(macro);
+        ridge = pow(ridge, 1.85);
+        // Worley cells = chunky rock fracturing
+        float cells = 1.0 - worley(p.xy * 0.32);
+        cells = pow(cells, 1.6);
+        // micro fbm = surface granularity that breaks flat shading
+        float micro = fbm(p.xy * 1.4) * 0.28;
+        float h = (ridge * 0.62 + cells * 0.38) * spine + micro * spine * 0.35;
+        // fade distant geometry into the night sky
+        float distFade = smoothstep(22.0, 75.0, abs(p.y));
+        h *= 1.0 - distFade;
+        vH = h;
+        vMacro = macro;
+        vCells = cells;
+        vMicro = micro;
+        p.z += h;
+        vWorldPos = p;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        vDepth = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      ${GLSL_NOISE}
+      uniform float uTime;
+      varying float vH;
+      varying float vMacro;
+      varying float vCells;
+      varying float vMicro;
+      varying vec3 vWorldPos;
+      varying float vDepth;
+      void main() {
+        // per-pixel surface normal from displaced position derivatives.
+        // This is what turns the rock from a height-shaded blob into a
+        // lit, faceted surface that reads as real geometry.
+        vec3 dx = dFdx(vWorldPos);
+        vec3 dy = dFdy(vWorldPos);
+        vec3 N = normalize(cross(dx, dy));
+
+        // crack mask: deepest in the valleys between ridges
+        float crack = smoothstep(0.28, 0.02, abs(vMacro));
+
+        // base rock: dark basalt with micro variation
+        float grit = vMicro + (vCells - 0.5) * 0.45;
+        vec3 rock = mix(vec3(0.018, 0.014, 0.012),
+                        vec3(0.16, 0.12, 0.10),
+                        clamp(0.18 + vH * 0.22 + grit * 0.6, 0.0, 1.0));
+
+        // warm key light from above-right
+        vec3 L = normalize(vec3(0.45, 0.85, 0.35));
+        float diff = max(dot(N, L), 0.0);
+        // soft bounce light from below in lava orange — fills shadows
+        float bounce = clamp(-N.y * 0.5 + 0.5, 0.0, 1.0);
+        vec3 lit = rock * (0.10 + diff * 0.95)
+                 + vec3(0.28, 0.10, 0.04) * bounce * 0.18;
+
+        // animated lava flow noise inside cracks
+        float flow = fbm(vWorldPos.xy * 0.14 + vec2(uTime * 0.022,
+                                                     uTime * 0.011));
+        float hot = crack * smoothstep(-0.35, 0.85, flow);
+        // hot spots (yellow-white) where flow noise peaks
+        float core = pow(hot, 3.0);
+        vec3 lavaDeep = vec3(0.55, 0.06, 0.01);
+        vec3 lavaMid  = vec3(1.10, 0.45, 0.10);
+        vec3 lavaHot  = vec3(1.80, 1.20, 0.55);
+        vec3 lava = mix(lavaDeep, lavaMid, smoothstep(0.15, 0.65, hot));
+        lava = mix(lava, lavaHot, smoothstep(0.55, 0.95, core));
+        vec3 col = lit + lava * hot * 2.4;
+
+        // bleed: lava emits onto rock surrounding the crack
+        col += vec3(0.65, 0.20, 0.05) * crack * 0.45;
+
+        // atmospheric depth fade to black
+        float fogF = smoothstep(8.0, 55.0, vDepth);
+        col = mix(col, vec3(0.010, 0.006, 0.004), fogF);
+        // distant ember haze
+        col += vec3(0.30, 0.10, 0.04)
+             * smoothstep(28.0, 55.0, vDepth)
+             * (1.0 - smoothstep(48.0, 75.0, vDepth)) * 0.10;
+
+        // Reinhard tone map — protects highlights, keeps shadows clean
+        col = col / (1.0 + col * 0.6);
+
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `,
+  });
+  // Enable fragment derivatives for normal computation under WebGL1
+  terrainMat.extensions = { derivatives: true };
+
+  const terrain = new THREE.Mesh(geo, terrainMat);
   terrain.rotation.x = -Math.PI / 2;
   scene.add(terrain);
 
