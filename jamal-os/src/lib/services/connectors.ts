@@ -9,8 +9,9 @@ import {
   refreshAccessToken,
   type GoogleTokens,
 } from "@/lib/google-oauth";
+import { readMonzoEnv, refreshMonzoToken } from "@/lib/monzo";
 
-export type ConnectorProvider = "gmail" | "google_calendar";
+export type ConnectorProvider = "gmail" | "google_calendar" | "monzo";
 
 export async function getConnectorAccount(provider: ConnectorProvider) {
   return db.query.connectorAccounts.findFirst({
@@ -68,13 +69,29 @@ export async function getValidAccessToken(
       `${provider} access token expired and no refresh token is stored. Reconnect the account.`,
     );
   }
+  const refreshed = await refreshForProvider(provider, tokens.refreshToken);
+  await saveConnectorTokens(provider, refreshed);
+  return refreshed.accessToken;
+}
+
+async function refreshForProvider(
+  provider: ConnectorProvider,
+  refreshToken: string,
+): Promise<GoogleTokens> {
+  if (provider === "monzo") {
+    const env = readMonzoEnv();
+    if (!env) {
+      throw new Error(
+        "Monzo env vars are missing. Restore MONZO_CLIENT_ID and MONZO_CLIENT_SECRET in .env.local.",
+      );
+    }
+    return refreshMonzoToken(env, refreshToken);
+  }
   const env = readGoogleOAuthEnv();
   if (!env) {
     throw new Error(
       "Google OAuth env vars are missing. Restore GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.local.",
     );
   }
-  const refreshed = await refreshAccessToken(env, tokens.refreshToken);
-  await saveConnectorTokens(provider, refreshed);
-  return refreshed.accessToken;
+  return refreshAccessToken(env, refreshToken);
 }

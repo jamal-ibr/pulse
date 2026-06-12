@@ -3,13 +3,22 @@ import { desc, gte } from "drizzle-orm";
 import { Card, CardTitle, Stat, Badge, EmptyState, inputClass, buttonClass } from "@/components/ui";
 import { takeawayRolling30, businessPersonalSplit, categoryTotals, detectLeaks, TAKEAWAY_BASELINE } from "@/lib/spending-logic";
 import { todayIso, daysAgoIso } from "@/lib/dates";
-import { addSpend, importCsv } from "./actions";
+import { addSpend, importCsv, syncMonzo } from "./actions";
+import { buttonGhostClass } from "@/components/ui";
+import { readMonzoEnv } from "@/lib/monzo";
+import { getConnectorAccount } from "@/lib/services/connectors";
 
 export const dynamic = "force-dynamic";
 
 const CATEGORIES = ["groceries", "takeaway", "transport", "subscriptions", "business", "other"];
 
-export default async function SpendingPage() {
+export default async function SpendingPage(props: {
+  searchParams: Promise<{ connected?: string; error?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+  const monzoConfigured = readMonzoEnv() !== null;
+  const monzoAccount = await getConnectorAccount("monzo");
+  const monzoConnected = Boolean(monzoAccount?.encryptedToken);
   const today = todayIso();
   const rows = await db.query.spending.findMany({
     where: gte(schema.spending.date, daysAgoIso(31)),
@@ -32,10 +41,40 @@ export default async function SpendingPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold">Spending</h1>
-        <p className="text-xs text-ink-faint">Rolling 30 days. Structural change beats willpower.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">Spending</h1>
+          <p className="text-xs text-ink-faint">Rolling 30 days. Structural change beats willpower.</p>
+        </div>
+        {monzoConnected ? (
+          <form action={syncMonzo}>
+            <button type="submit" className={buttonGhostClass}>
+              Sync Monzo
+            </button>
+          </form>
+        ) : monzoConfigured ? (
+          <a href="/api/oauth/monzo/start" className={buttonGhostClass}>
+            Connect Monzo (read-only)
+          </a>
+        ) : null}
       </div>
+
+      {searchParams.connected === "monzo" && (
+        <Card>
+          <p className="text-sm text-accent">
+            Monzo connected. Open the Monzo app on your phone and approve the
+            connection, then come back and press Sync Monzo.
+          </p>
+        </Card>
+      )}
+      {searchParams.error && (
+        <Card>
+          <p className="text-sm text-danger">
+            Monzo connection failed ({searchParams.error}). Check the values
+            in .env.local and try again.
+          </p>
+        </Card>
+      )}
 
       <div className={`rounded-xl border p-4 ${takeaway30 >= 8 ? "border-red-900 bg-red-950/50" : "border-edge bg-panel"}`}>
         <div className="flex items-baseline justify-between">

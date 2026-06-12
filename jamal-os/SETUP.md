@@ -84,6 +84,34 @@ day's metrics upsert by date.
 - Every external write requires an explicit confirmation click in the
   app and is recorded in the audit log
 
+## Monzo connector (read-only)
+
+Live bank feed for the Spending page using Monzo's official
+personal-use API. The app only ever reads accounts and transactions.
+
+1. Go to https://developers.monzo.com and sign in with your Monzo
+   account (it emails you a magic link)
+2. Create a new OAuth client:
+   - Redirect URL: `http://localhost:3000/api/oauth/monzo/callback`
+   - Confidentiality: Confidential (required for refresh tokens)
+3. Copy the client ID and secret into `.env.local`:
+   ```
+   MONZO_CLIENT_ID=oauth2client_...
+   MONZO_CLIENT_SECRET=mnzconf...
+   MONZO_REDIRECT_URI=http://localhost:3000/api/oauth/monzo/callback
+   ```
+4. Make sure `LOCAL_ENCRYPTION_KEY` is set (same key as Gmail)
+5. Restart the app, open Spending, click "Connect Monzo (read-only)",
+   approve the emailed magic link, then approve the connection inside
+   the Monzo app on your phone (Monzo requires this extra step)
+6. Press "Sync Monzo". First sync pulls 90 days; after that it
+   resumes from the newest stored transaction
+
+Mapping notes: amounts arrive in pennies and are stored in pounds;
+"Eating out" maps to the takeaway counter; declined payments, income,
+refunds, and internal pot transfers are skipped; duplicates are
+prevented by Monzo's transaction id.
+
 ## CSV spending import
 
 Use the import on the Spending page. The parser auto-detects columns

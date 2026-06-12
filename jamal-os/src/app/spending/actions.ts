@@ -73,3 +73,70 @@ export async function importCsv(formData: FormData) {
   revalidatePath("/spending");
   revalidatePath("/");
 }
+
+export async function syncMonzo(): Promise<void> {
+  const { getValidAccessToken } = await import("@/lib/services/connectors");
+  const { listMonzoAccounts, listMonzoTransactions, mapMonzoTransaction } =
+    await import("@/lib/monzo");
+  const { eq, desc: descOrder } = await import("drizzle-orm");
+
+  try {
+    const accessToken = await getValidAccessToken("monzo");
+    if (!accessToken) return;
+
+    const accounts = await listMonzoAccounts(accessToken);
+    if (accounts.length === 0) return;
+
+    // Resume from the newest already-synced Monzo spend, else 90 days
+    const newest = await db.query.spending.findFirst({
+      where: eq(schema.spending.source, "monzo"),
+      orderBy: descOrder(schema.spending.date),
+    });
+    const since = newest
+      ? `${newest.date}T00:00:00Z`
+      : new Date(Date.now() - 90 * 86400000).toISOString();
+
+    let inserted = 0;
+    for (const account of accounts) {
+      const transactions = await listMonzoTransactions(
+        accessToken,
+        account.id,
+        since,
+      );
+      for (const tx of transactions) {
+        const mapped = mapMonzoTransaction(tx);
+        if (!mapped) continue;
+        const existing = await db.query.spending.findFirst({
+          where: eq(schema.spending.externalId, mapped.externalId),
+        });
+        if (existing) continue;
+        await db.insert(schema.spending).values({
+          date: mapped.date,
+          amount: mapped.amount,
+          category: mapped.category,
+          merchant: mapped.merchant,
+          note: mapped.note,
+          isBusiness: mapped.category === "business",
+          source: "monzo",
+          externalId: mapped.externalId,
+        });
+        inserted += 1;
+      }
+    }
+
+    await db.insert(schema.auditLogs).values({
+      action: "monzo_synced",
+      target: "monzo",
+      detail: `${inserted} new transactions stored`,
+    });
+  } catch (error) {
+    console.error("Monzo sync failed:", error);
+    await db.insert(schema.auditLogs).values({
+      action: "monzo_sync_failed",
+      target: "monzo",
+      detail: error instanceof Error ? error.message.slice(0, 300) : "unknown",
+    });
+  }
+  revalidatePath("/spending");
+  revalidatePath("/");
+}

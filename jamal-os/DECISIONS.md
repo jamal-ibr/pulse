@@ -201,3 +201,17 @@ devDependencies with a flat config, then lint runs non-interactively.
   to Apple Health, since Garmin's official API is business-use only.
 - The Anthropic key lives in .env.local (gitignored) and was verified
   against the live API. No secrets in source or git history.
+
+## Monzo connector (June 2026)
+
+- Monzo's official personal-use API, read-only by policy: only GET
+  /accounts and GET /transactions are ever called. Tokens share the
+  encrypted connector_accounts storage; refresh is routed per provider
+  in src/lib/services/connectors.ts.
+- Transactions map to the existing spending convention: positive
+  pounds, eating_out as takeaway, bills as subscriptions. Declined
+  payments, income, refunds, and pot transfers are skipped. Dedupe is
+  by Monzo transaction id in spending.external_id (new migration).
+- First sync pulls 90 days, later syncs resume from the newest stored
+  Monzo transaction date (re-fetching that day is intentional; dedupe
+  makes it idempotent).

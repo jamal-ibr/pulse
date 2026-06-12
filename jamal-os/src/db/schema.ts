@@ -282,7 +282,8 @@ export const spending = sqliteTable("spending", {
   merchant: text("merchant"),
   note: text("note"),
   isBusiness: integer("is_business", { mode: "boolean" }).notNull().default(false),
-  source: text("source").notNull().default("manual"), // manual | csv
+  source: text("source").notNull().default("manual"), // manual | csv | monzo
+  externalId: text("external_id"),
   createdAt: text("created_at").notNull().default(now()),
 });
 
