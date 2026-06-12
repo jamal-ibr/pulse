@@ -2,11 +2,20 @@ import { db, schema } from "@/db/client";
 import { gte, asc } from "drizzle-orm";
 import { Card, CardTitle, Badge, EmptyState, inputClass, buttonClass } from "@/components/ui";
 import { todayIso, formatTime, formatShort } from "@/lib/dates";
-import { addLocalEvent } from "./actions";
+import { addLocalEvent, syncGoogleCalendar } from "./actions";
+import { buttonGhostClass } from "@/components/ui";
+import { readGoogleOAuthEnv } from "@/lib/google-oauth";
+import { getConnectorAccount } from "@/lib/services/connectors";
 
 export const dynamic = "force-dynamic";
 
-export default async function CalendarPage() {
+export default async function CalendarPage(props: {
+  searchParams: Promise<{ connected?: string; error?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+  const oauthConfigured = readGoogleOAuthEnv() !== null;
+  const googleAccount = await getConnectorAccount("google_calendar");
+  const googleConnected = Boolean(googleAccount?.encryptedToken);
   const today = todayIso();
   const events = await db.query.calendarEvents.findMany({
     where: gte(schema.calendarEvents.start, `${today}T00:00`),
@@ -36,12 +45,47 @@ export default async function CalendarPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold">Calendar</h1>
-        <p className="text-xs text-ink-faint">
-          Local and mock events. External calendar writes require a connected Google account and explicit confirmation. See Settings.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">Calendar</h1>
+          <p className="text-xs text-ink-faint">
+            {googleConnected
+              ? "Google Calendar connected, read-only. Local events stay local."
+              : "Local events. The Google connector is read-only; nothing is ever written to Google."}
+          </p>
+        </div>
+        {googleConnected ? (
+          <form action={syncGoogleCalendar}>
+            <button type="submit" className={buttonGhostClass}>
+              Sync Google Calendar
+            </button>
+          </form>
+        ) : oauthConfigured ? (
+          <a
+            href="/api/oauth/google/start?connector=google_calendar"
+            className={buttonGhostClass}
+          >
+            Connect Google Calendar (read-only)
+          </a>
+        ) : null}
       </div>
+
+      {searchParams.connected === "google_calendar" && (
+        <Card>
+          <p className="text-sm text-accent">
+            Google Calendar connected with read-only access. Press Sync to
+            pull the next 60 days of events.
+          </p>
+        </Card>
+      )}
+      {searchParams.error && (
+        <Card>
+          <p className="text-sm text-danger">
+            Google Calendar connection failed ({searchParams.error}). Check
+            the Google OAuth values in .env.local and try again.
+          </p>
+        </Card>
+      )}
 
       <Card>
         <CardTitle>Add local event</CardTitle>

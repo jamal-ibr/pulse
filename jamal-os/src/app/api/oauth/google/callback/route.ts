@@ -8,15 +8,26 @@ import { readGoogleOAuthEnv, exchangeCodeForTokens } from "@/lib/google-oauth";
 import { saveConnectorTokens } from "@/lib/services/connectors";
 
 const STATE_COOKIE = "google_oauth_state";
+const CONNECTOR_COOKIE = "google_oauth_connector";
 
-function redirectToEmail(request: NextRequest, query: string): NextResponse {
-  return NextResponse.redirect(new URL(`/email?${query}`, request.url));
+function redirectBack(
+  request: NextRequest,
+  page: string,
+  query: string,
+): NextResponse {
+  return NextResponse.redirect(new URL(`${page}?${query}`, request.url));
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const connector =
+    request.cookies.get(CONNECTOR_COOKIE)?.value === "google_calendar"
+      ? ("google_calendar" as const)
+      : ("gmail" as const);
+  const page = connector === "google_calendar" ? "/calendar" : "/email";
+
   const env = readGoogleOAuthEnv();
   if (!env) {
-    return redirectToEmail(request, "error=not_configured");
+    return redirectBack(request, page, "error=not_configured");
   }
 
   const url = new URL(request.url);
@@ -25,16 +36,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const cookieState = request.cookies.get(STATE_COOKIE)?.value;
 
   if (!code || !state || !cookieState || state !== cookieState) {
-    return redirectToEmail(request, "error=state_mismatch");
+    return redirectBack(request, page, "error=state_mismatch");
   }
 
   try {
     const tokens = await exchangeCodeForTokens(env, code);
-    await saveConnectorTokens("gmail", tokens);
+    await saveConnectorTokens(connector, tokens);
     await db.insert(schema.auditLogs).values({
       action: "connector_connected",
-      target: "gmail",
-      detail: "Gmail connected with gmail.readonly scope",
+      target: connector,
+      detail:
+        connector === "google_calendar"
+          ? "Google Calendar connected with calendar.readonly scope"
+          : "Gmail connected with gmail.readonly scope",
       isExternalWrite: false,
       confirmed: true,
     });
@@ -44,11 +58,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       .set({ value: "connected_read" })
       .where(eq(schema.settings.key, "data_mode"));
   } catch (error) {
-    console.error("Gmail OAuth callback failed:", error);
-    return redirectToEmail(request, "error=token_exchange_failed");
+    console.error("Google OAuth callback failed:", error);
+    return redirectBack(request, page, "error=token_exchange_failed");
   }
 
-  const response = redirectToEmail(request, "connected=gmail");
+  const response = redirectBack(request, page, `connected=${connector}`);
   response.cookies.delete(STATE_COOKIE);
+  response.cookies.delete(CONNECTOR_COOKIE);
   return response;
 }

@@ -78,11 +78,24 @@ delay background automations, and pushes fail silently while the
 computer is asleep; the next successful push catches up because each
 day's metrics upsert by date.
 
-### Google Calendar policy (connector still scaffolded)
+## Google Calendar connector (read-only)
 
-- Scope `https://www.googleapis.com/auth/calendar.events`
-- Every external write requires an explicit confirmation click in the
-  app and is recorded in the audit log
+Uses the same Google Cloud project and credentials as Gmail. Two extra
+steps beyond the Gmail setup:
+
+1. In the Google Cloud console, APIs & Services, Library: enable the
+   "Google Calendar API" (same project as Gmail)
+2. In Jamal OS, open the Calendar page and click "Connect Google
+   Calendar (read-only)", then press "Sync Google Calendar"
+
+Sync pulls the past week and next 60 days from your primary calendar
+into the local calendar (deduped and refreshed by event id), which
+also feeds the Daily Brief and the planner's overcommitment check.
+
+Policy: the app requests `calendar.readonly` only. Nothing is ever
+written to Google Calendar; local events stay local. If event push is
+ever added, it requires the write scope, an explicit confirmation
+click per event, and an audit log entry.
 
 ## Monzo connector (read-only)
 

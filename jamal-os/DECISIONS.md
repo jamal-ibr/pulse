@@ -215,3 +215,14 @@ devDependencies with a flat config, then lint runs non-interactively.
 - First sync pulls 90 days, later syncs resume from the newest stored
   Monzo transaction date (re-fetching that day is intentional; dedupe
   makes it idempotent).
+
+## Google Calendar connector (June 2026)
+
+- Read-only sync of the primary calendar through the shared Google
+  OAuth routes (?connector=google_calendar selects the scope; a cookie
+  carries the choice through the callback). Scope downgraded from the
+  scaffold's calendar.events to calendar.readonly: write support was
+  not being built, so the app should not hold a write-capable token.
+- Events upsert by Google event id, window past 7 to plus 60 days.
+  All-day events map onto their start day (Google end dates are
+  exclusive). Wall-clock times are kept to match local event format.
