@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, real, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 const now = () => sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`;
@@ -376,6 +376,7 @@ export const emailMessages = sqliteTable("email_messages", {
   category: text("category"), // needs_reply|pulse_lead|ey_bpp_deadline|noise|opportunity|risk
   detectedDeadline: text("detected_deadline"),
   sourceProvider: text("source_provider").notNull().default("mock"),
+  externalId: text("external_id"),
   createdAt: text("created_at").notNull().default(now()),
 });
 
@@ -399,6 +400,20 @@ export const calendarEvents = sqliteTable("calendar_events", {
   writeStatus: text("write_status").notNull().default("local_only"), // local_only | synced
   createdAt: text("created_at").notNull().default(now()),
 });
+
+export const healthMetrics = sqliteTable(
+  "health_metrics",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    date: text("date").notNull(),
+    metric: text("metric").notNull(), // e.g. step_count, heart_rate, active_energy
+    value: real("value").notNull(),
+    units: text("units"),
+    source: text("source").notNull().default("health_auto_export"),
+    createdAt: text("created_at").notNull().default(now()),
+  },
+  (table) => [uniqueIndex("health_metrics_date_metric").on(table.date, table.metric)],
+);
 
 export const connectorAccounts = sqliteTable("connector_accounts", {
   id: integer("id").primaryKey({ autoIncrement: true }),

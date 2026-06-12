@@ -4,8 +4,57 @@ import { db, schema } from "@/db/client";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { complete } from "@/lib/ai/provider";
-import { detectDeadline } from "@/lib/email/triage";
+import { detectDeadline, triageEmail } from "@/lib/email/triage";
 import { redactEmailBody } from "@/lib/redact";
+import { gmailReadonlyProvider } from "@/lib/email/gmail-readonly-provider";
+
+export async function syncGmail(): Promise<void> {
+  let fetched;
+  try {
+    fetched = await gmailReadonlyProvider.fetchUnread();
+  } catch (error) {
+    console.error("Gmail sync failed:", error);
+    await db.insert(schema.auditLogs).values({
+      action: "gmail_sync_failed",
+      target: "gmail",
+      detail: error instanceof Error ? error.message.slice(0, 300) : "unknown",
+    });
+    revalidatePath("/email");
+    return;
+  }
+
+  let inserted = 0;
+  for (const message of fetched) {
+    const existing = await db.query.emailMessages.findFirst({
+      where: eq(schema.emailMessages.externalId, message.externalId),
+    });
+    if (existing) continue;
+    await db.insert(schema.emailMessages).values({
+      sender: message.sender,
+      subject: message.subject,
+      snippet: message.snippet,
+      body: message.body,
+      receivedAt: message.receivedAt,
+      isRead: message.isRead,
+      category: triageEmail(message.sender, message.subject, message.body),
+      detectedDeadline: detectDeadline(
+        message.subject + "\n" + message.body,
+        new Date(message.receivedAt),
+      ),
+      sourceProvider: "gmail",
+      externalId: message.externalId,
+    });
+    inserted += 1;
+  }
+
+  await db.insert(schema.auditLogs).values({
+    action: "gmail_synced",
+    target: "gmail",
+    detail: `${fetched.length} unread fetched, ${inserted} new stored`,
+  });
+  revalidatePath("/email");
+  revalidatePath("/");
+}
 
 export async function draftReply(formData: FormData) {
   const emailId = Number(formData.get("emailId"));

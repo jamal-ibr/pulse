@@ -182,3 +182,22 @@ devDependencies with a flat config, then lint runs non-interactively.
   missing) and speechSynthesis for spoken replies, which can be muted.
   No audio is stored and nothing new leaves the machine beyond what
   the chosen recognition engine does.
+
+## Gmail connector and Apple Health ingest (June 2026)
+
+- Gmail is now a real connector: OAuth 2.0 web flow with the
+  gmail.readonly scope only, state-cookie CSRF check, tokens encrypted
+  with AES-256-GCM under LOCAL_ENCRYPTION_KEY in connector_accounts,
+  transparent refresh, and a Sync button that upserts unread messages
+  (deduped by Gmail message id) into the existing triage. The sync
+  stores snippets, not full MIME bodies: triage needs the gist and the
+  full text stays in Gmail.
+- Apple Health arrives via the Health Auto Export iPhone app POSTing
+  to /api/health/ingest with a shared bearer token. Parsing is pure
+  and tested: countable units are summed per day, rates averaged,
+  weight converted to kg and upserted into weight_logs, sleep into
+  sleep_logs, everything else into the new health_metrics table.
+  Garmin data flows through the same route when Garmin Connect syncs
+  to Apple Health, since Garmin's official API is business-use only.
+- The Anthropic key lives in .env.local (gitignored) and was verified
+  against the live API. No secrets in source or git history.

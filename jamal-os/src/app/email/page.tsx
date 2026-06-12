@@ -3,8 +3,10 @@ import { desc, eq } from "drizzle-orm";
 import { Card, CardTitle, Badge, EmptyState, buttonGhostClass } from "@/components/ui";
 import { triageEmail, detectDeadline } from "@/lib/email/triage";
 import type { TriageCategory } from "@/lib/email/types";
-import { draftReply, addDeadlineToCalendar, markRead } from "./actions";
+import { draftReply, addDeadlineToCalendar, markRead, syncGmail } from "./actions";
 import { CopyButton } from "@/components/copy-button";
+import { readGoogleOAuthEnv } from "@/lib/google-oauth";
+import { getConnectorAccount } from "@/lib/services/connectors";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +19,13 @@ const BUCKETS: Array<{ key: TriageCategory; label: string; tone: "danger" | "goo
   { key: "noise", label: "Noise", tone: "neutral" },
 ];
 
-export default async function EmailPage() {
+export default async function EmailPage(props: {
+  searchParams: Promise<{ connected?: string; error?: string }>;
+}) {
+  const searchParams = await props.searchParams;
+  const oauthConfigured = readGoogleOAuthEnv() !== null;
+  const gmailAccount = await getConnectorAccount("gmail");
+  const gmailConnected = Boolean(gmailAccount?.encryptedToken);
   const emails = await db.query.emailMessages.findMany({
     orderBy: desc(schema.emailMessages.receivedAt),
   });
@@ -38,12 +46,48 @@ export default async function EmailPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold">Email triage</h1>
-        <p className="text-xs text-ink-faint">
-          Mock inbox. Gmail connector is read-only by design. Drafts are never sent automatically.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">Email triage</h1>
+          <p className="text-xs text-ink-faint">
+            {gmailConnected
+              ? "Gmail connected, read-only. Drafts are never sent automatically."
+              : "Mock inbox. Gmail connector is read-only by design. Drafts are never sent automatically."}
+          </p>
+        </div>
+        {gmailConnected ? (
+          <form action={syncGmail}>
+            <button type="submit" className={buttonGhostClass}>
+              Sync Gmail
+            </button>
+          </form>
+        ) : oauthConfigured ? (
+          <a href="/api/oauth/google/start" className={buttonGhostClass}>
+            Connect Gmail (read-only)
+          </a>
+        ) : (
+          <span className="text-[11px] text-ink-faint">
+            Add Google OAuth keys to .env.local to connect Gmail (SETUP.md)
+          </span>
+        )}
       </div>
+
+      {searchParams.connected === "gmail" && (
+        <Card>
+          <p className="text-sm text-accent">
+            Gmail connected with read-only access. Use Sync Gmail to pull
+            unread messages into triage.
+          </p>
+        </Card>
+      )}
+      {searchParams.error && (
+        <Card>
+          <p className="text-sm text-danger">
+            Gmail connection failed ({searchParams.error}). Check the Google
+            OAuth values in .env.local and try again.
+          </p>
+        </Card>
+      )}
 
       {BUCKETS.map((bucket) => {
         const items = categorised.filter((c) => c.category === bucket.key);
