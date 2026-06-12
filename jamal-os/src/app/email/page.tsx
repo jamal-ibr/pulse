@@ -1,5 +1,5 @@
 import { db, schema } from "@/db/client";
-import { desc, eq } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { Card, CardTitle, Badge, EmptyState, buttonGhostClass } from "@/components/ui";
 import { triageEmail, detectDeadline } from "@/lib/email/triage";
 import type { TriageCategory } from "@/lib/email/types";

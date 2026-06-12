@@ -2,7 +2,7 @@
 // delegated to the AI.
 
 import { db, schema } from "@/db/client";
-import { and, eq, gte, lte, lt, ne, desc, asc, isNotNull } from "drizzle-orm";
+import { and, eq, gte, lte, ne, asc } from "drizzle-orm";
 import { todayIso, daysAgoIso } from "@/lib/dates";
 import { getPipelineMetrics, type PipelineMetrics } from "./pipeline";
 import { getYesterdayGaps, getWeightTrend, getSleepForDate, type HabitGap } from "./habits";

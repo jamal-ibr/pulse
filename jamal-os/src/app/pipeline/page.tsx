@@ -1,6 +1,4 @@
-import { db, schema } from "@/db/client";
-import { desc, gte } from "drizzle-orm";
-import { Card, CardTitle, Stat, Badge, EmptyState, inputClass, buttonClass, buttonGhostClass } from "@/components/ui";
+import { Card, CardTitle, Stat, Badge, inputClass, buttonClass, buttonGhostClass } from "@/components/ui";
 import { getPipeline, getPipelineMetrics, STAGES } from "@/lib/services/pipeline";
 import { pulseHardRuleTriggered, PULSE_HARD_RULE_MESSAGE } from "@/lib/avoidance";
 import { todayIso } from "@/lib/dates";

@@ -123,8 +123,16 @@ logging flow is still under 30 seconds.
 
 ## Lint command
 
-`npm run lint` maps to `next lint`, which requires an interactive ESLint
-setup on first run and was not configured in this session. Type safety is
+Resolved June 2026: ESLint 9 flat config (next/core-web-vitals plus
+next/typescript) is committed and `npm run lint` now runs the eslint
+CLI directly over src, tests, and scripts. The first run surfaced 20
+unused-import warnings and two dead variables (an unused sleep query
+in level.ts and an overlap helper in planner.ts superseded by
+findSlot); all were removed. Original note kept below for history.
+
+`npm run lint` mapped to `next lint`, which requires an interactive
+ESLint setup on first run and was not configured in the first session.
+Type safety is
 enforced by `npm run build` (full type-check) and correctness by
 `npm test`. Upgrade path: add `eslint` and `eslint-config-next` to
 devDependencies with a flat config, then lint runs non-interactively.

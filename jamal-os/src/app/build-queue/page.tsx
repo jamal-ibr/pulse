@@ -3,7 +3,7 @@ import { desc } from "drizzle-orm";
 import { Card, CardTitle, Badge, EmptyState, inputClass, buttonClass, buttonGhostClass } from "@/components/ui";
 import { getPipelineMetrics } from "@/lib/services/pipeline";
 import { pulseHardRuleTriggered } from "@/lib/avoidance";
-import { isAfter2230, todayIso } from "@/lib/dates";
+import { isAfter2230 } from "@/lib/dates";
 import { safeSlug } from "@/lib/services/build-queue";
 import { addIdea, generatePrompt, dropIdea } from "./actions";
 import { CopyButton } from "@/components/copy-button";

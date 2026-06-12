@@ -48,9 +48,6 @@ export async function planDay(): Promise<{
     toMinutes(e.end.slice(11, 16)),
   ]);
 
-  const overlapsBusy = (start: number, end: number) =>
-    busy.some(([busyStart, busyEnd]) => start < busyEnd && end > busyStart);
-
   const blocks: PlannedBlock[] = [];
   const warnings: string[] = [];
 

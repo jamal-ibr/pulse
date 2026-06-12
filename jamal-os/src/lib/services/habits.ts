@@ -1,6 +1,6 @@
 import { db, schema } from "@/db/client";
 import { desc, gte, eq } from "drizzle-orm";
-import { daysAgoIso, todayIso } from "@/lib/dates";
+import { daysAgoIso } from "@/lib/dates";
 import {
   dayCompliance,
   proteinMet,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { db, schema } from "@/db/client";
-import { asc, ne, eq } from "drizzle-orm";
+import { asc, ne } from "drizzle-orm";
 import { Card, Badge, EmptyState } from "@/components/ui";
 import { projectStalled } from "@/lib/avoidance";
 

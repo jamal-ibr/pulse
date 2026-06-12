@@ -1,5 +1,5 @@
 import { db, schema } from "@/db/client";
-import { eq, desc, and, gte, lt, isNotNull } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { todayIso, daysAgoIso, daysBetween, weekStartIso } from "@/lib/dates";
 
 export const STAGES = [

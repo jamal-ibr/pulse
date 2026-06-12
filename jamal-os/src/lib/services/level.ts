@@ -2,13 +2,12 @@
 // over a rolling 4-week window, dampens jumps, and snapshots.
 
 import { db, schema } from "@/db/client";
-import { gte, desc, ne } from "drizzle-orm";
+import { gte, desc } from "drizzle-orm";
 import {
   computePillarScore,
   computeOverallLevel,
   dampenLevelJump,
   levelBandLabel,
-  PILLAR_KEYS,
   type PillarKey,
 } from "@/lib/level";
 import { daysAgoIso, todayIso } from "@/lib/dates";
@@ -38,9 +37,6 @@ const WINDOW_DAYS = 28;
 export async function computeLevelState() {
   const logs = await db.query.habitLogs.findMany({
     where: gte(schema.habitLogs.date, daysAgoIso(WINDOW_DAYS)),
-  });
-  const sleep = await db.query.sleepLogs.findMany({
-    where: gte(schema.sleepLogs.date, daysAgoIso(WINDOW_DAYS)),
   });
   const readingLogs = await db.query.readingLogs.findMany({
     where: gte(schema.readingLogs.date, daysAgoIso(WINDOW_DAYS)),
