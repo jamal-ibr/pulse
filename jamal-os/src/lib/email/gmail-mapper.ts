@@ -20,7 +20,8 @@ function header(message: GmailApiMessage, name: string): string {
   return found?.value ?? "";
 }
 
-// Gmail snippets HTML-escape their content
+// Gmail snippets HTML-escape their content. Decode for readability,
+// then strip any tags so no markup is ever stored.
 function decodeEntities(text: string): string {
   return text
     .replace(/&amp;/g, "&")
@@ -32,7 +33,7 @@ function decodeEntities(text: string): string {
 
 export function mapGmailMessage(message: GmailApiMessage): EmailMessage {
   const receivedMs = Number(message.internalDate ?? Date.now());
-  const snippet = decodeEntities(message.snippet ?? "");
+  const snippet = decodeEntities(message.snippet ?? "").replace(/<[^>]*>/g, "");
   return {
     externalId: message.id,
     sender: header(message, "From") || "(unknown sender)",

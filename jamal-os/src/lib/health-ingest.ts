@@ -74,7 +74,11 @@ export function parseHealthExport(payload: unknown): HealthIngestResult {
   const weightByDate = new Map<string, number>();
 
   for (const raw of metrics) {
-    const name = typeof raw.name === "string" ? raw.name : null;
+    // Metric names from the payload are stored verbatim; constrain them
+    const name =
+      typeof raw.name === "string" && /^[a-z0-9_]{1,100}$/i.test(raw.name)
+        ? raw.name
+        : null;
     const units = typeof raw.units === "string" ? raw.units.toLowerCase() : null;
     if (!name || !Array.isArray(raw.data)) continue;
 

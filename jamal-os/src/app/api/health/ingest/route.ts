@@ -4,9 +4,21 @@
 // SETUP.md. Read-only from the phone's perspective: this endpoint
 // never sends anything back to Apple Health.
 
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { db, schema } from "@/db/client";
 import { parseHealthExport } from "@/lib/health-ingest";
+
+// Health Auto Export daily payloads are tens of kilobytes; anything
+// near this cap is not a legitimate push.
+const MAX_BODY_BYTES = 512 * 1024;
+
+function tokenMatches(header: string, expected: string): boolean {
+  const received = Buffer.from(header);
+  const wanted = Buffer.from(`Bearer ${expected}`);
+  // Length check first; timingSafeEqual requires equal lengths
+  return received.length === wanted.length && timingSafeEqual(received, wanted);
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const expected = process.env.HEALTH_INGEST_TOKEN;
@@ -17,8 +29,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
   const auth = request.headers.get("authorization") ?? "";
-  if (auth !== `Bearer ${expected}`) {
+  if (!tokenMatches(auth, expected)) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  }
+
+  const contentLength = Number(request.headers.get("content-length"));
+  if (!Number.isFinite(contentLength) || contentLength <= 0) {
+    return NextResponse.json({ error: "Content-Length required" }, { status: 411 });
+  }
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json({ error: "Payload too large" }, { status: 413 });
   }
 
   let payload: unknown;

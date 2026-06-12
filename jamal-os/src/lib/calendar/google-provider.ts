@@ -26,6 +26,10 @@ export async function fetchGoogleCalendarEvents(
   fromIso: string,
   toIso: string,
 ): Promise<MappedCalendarEvent[]> {
+  const isoPattern = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z?$/;
+  if (!isoPattern.test(fromIso) || !isoPattern.test(toIso)) {
+    throw new Error("Calendar window must be ISO 8601 datetimes");
+  }
   const accessToken = await getValidAccessToken("google_calendar");
   if (!accessToken) {
     throw new Error(

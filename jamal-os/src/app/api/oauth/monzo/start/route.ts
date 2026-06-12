@@ -29,6 +29,7 @@ export async function GET(): Promise<NextResponse> {
   );
   response.cookies.set(STATE_COOKIE, state, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 600,
     path: "/",

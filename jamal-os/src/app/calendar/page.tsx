@@ -6,6 +6,7 @@ import { addLocalEvent, syncGoogleCalendar } from "./actions";
 import { buttonGhostClass } from "@/components/ui";
 import { readGoogleOAuthEnv } from "@/lib/google-oauth";
 import { getConnectorAccount } from "@/lib/services/connectors";
+import { connectorErrorMessage } from "@/lib/connector-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -78,11 +79,10 @@ export default async function CalendarPage(props: {
           </p>
         </Card>
       )}
-      {searchParams.error && (
+      {connectorErrorMessage(searchParams.error) && (
         <Card>
           <p className="text-sm text-danger">
-            Google Calendar connection failed ({searchParams.error}). Check
-            the Google OAuth values in .env.local and try again.
+            Google Calendar connection failed: {connectorErrorMessage(searchParams.error)}.
           </p>
         </Card>
       )}

@@ -20,9 +20,10 @@ export interface MappedCalendarEvent {
   description: string | null;
 }
 
-function localStamp(dateTime: string): string {
+function localStamp(dateTime: string): string | null {
   // "2026-06-12T09:00:00+01:00" -> "2026-06-12T09:00" (wall-clock time)
-  return dateTime.slice(0, 16);
+  const stamp = dateTime.slice(0, 16);
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(stamp) ? stamp : null;
 }
 
 export function mapGoogleCalendarEvent(
@@ -33,8 +34,11 @@ export function mapGoogleCalendarEvent(
   let start: string;
   let end: string;
   if (event.start?.dateTime && event.end?.dateTime) {
-    start = localStamp(event.start.dateTime);
-    end = localStamp(event.end.dateTime);
+    const startStamp = localStamp(event.start.dateTime);
+    const endStamp = localStamp(event.end.dateTime);
+    if (!startStamp || !endStamp) return null;
+    start = startStamp;
+    end = endStamp;
   } else if (event.start?.date) {
     // All-day event. Google's end date is exclusive; show the event on
     // its start day rather than spilling into the next.

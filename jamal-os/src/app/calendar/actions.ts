@@ -1,5 +1,7 @@
 "use server";
 
+import { redact } from "@/lib/redact";
+
 import { db, schema } from "@/db/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -99,7 +101,7 @@ export async function syncGoogleCalendar(): Promise<void> {
     await db.insert(schema.auditLogs).values({
       action: "google_calendar_sync_failed",
       target: "google_calendar",
-      detail: error instanceof Error ? error.message.slice(0, 300) : "unknown",
+      detail: redact(error instanceof Error ? error.message.slice(0, 300) : "unknown"),
     });
   }
   revalidatePath("/calendar");

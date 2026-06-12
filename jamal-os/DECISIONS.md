@@ -234,3 +234,32 @@ devDependencies with a flat config, then lint runs non-interactively.
 - Events upsert by Google event id, window past 7 to plus 60 days.
   All-day events map onto their start day (Google end dates are
   exclusive). Wall-clock times are kept to match local event format.
+
+## Security review and hardening (June 2026)
+
+A dedicated security review of the connector surface returned no
+critical findings and confirmed: no secrets in the repo, correct
+AES-GCM usage, parameterised SQL throughout, hardcoded read-only
+scopes, no SSRF or open-redirect vectors, tokens never logged. The
+following findings were fixed:
+
+- Health ingest token comparison is now constant-time
+  (crypto.timingSafeEqual) and the endpoint rejects bodies over 512KB
+  and requests without Content-Length.
+- OAuth callback error codes are rendered through an allowlist
+  (src/lib/connector-errors.ts); arbitrary query strings never reach
+  the page.
+- Sync failure messages pass through redact() before being stored in
+  audit_logs, in case provider error bodies echo credentials.
+- OAuth state cookies set the secure flag in production (localhost is
+  exempt by browsers, so the flows still work).
+- Security headers added: X-Frame-Options DENY, nosniff, no-referrer.
+- Gmail snippets are tag-stripped after entity decoding; health
+  metric names are constrained to [a-z0-9_]{1,100}; calendar window
+  arguments and mapped timestamps are format-validated; the voice
+  agent's TTS-stripping regex was tightened.
+
+Accepted risk, documented: server actions rely on Next.js built-in
+origin checks (fine for a single-user localhost app; do not expose
+the app publicly without adding authentication, as SETUP.md already
+states).

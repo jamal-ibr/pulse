@@ -41,7 +41,7 @@ type AgentState = "idle" | "listening" | "thinking";
 // Trailing "(Mock provider ...)" style notes are useful on screen but
 // tedious to hear out loud.
 function speakable(text: string): string {
-  return text.replace(/\(Mock [^)]*\)\s*$/i, "").trim();
+  return text.replace(/\s*\(Mock (provider|draft)[^)]*\)\s*$/i, "").trim();
 }
 
 export function VoiceAgent() {

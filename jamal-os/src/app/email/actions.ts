@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { complete } from "@/lib/ai/provider";
 import { detectDeadline, triageEmail } from "@/lib/email/triage";
-import { redactEmailBody } from "@/lib/redact";
+import { redactEmailBody, redact } from "@/lib/redact";
 import { gmailReadonlyProvider } from "@/lib/email/gmail-readonly-provider";
 
 export async function syncGmail(): Promise<void> {
@@ -17,7 +17,7 @@ export async function syncGmail(): Promise<void> {
     await db.insert(schema.auditLogs).values({
       action: "gmail_sync_failed",
       target: "gmail",
-      detail: error instanceof Error ? error.message.slice(0, 300) : "unknown",
+      detail: redact(error instanceof Error ? error.message.slice(0, 300) : "unknown"),
     });
     revalidatePath("/email");
     return;

@@ -7,6 +7,7 @@ import { draftReply, addDeadlineToCalendar, markRead, syncGmail } from "./action
 import { CopyButton } from "@/components/copy-button";
 import { readGoogleOAuthEnv } from "@/lib/google-oauth";
 import { getConnectorAccount } from "@/lib/services/connectors";
+import { connectorErrorMessage } from "@/lib/connector-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -80,11 +81,10 @@ export default async function EmailPage(props: {
           </p>
         </Card>
       )}
-      {searchParams.error && (
+      {connectorErrorMessage(searchParams.error) && (
         <Card>
           <p className="text-sm text-danger">
-            Gmail connection failed ({searchParams.error}). Check the Google
-            OAuth values in .env.local and try again.
+            Gmail connection failed: {connectorErrorMessage(searchParams.error)}.
           </p>
         </Card>
       )}

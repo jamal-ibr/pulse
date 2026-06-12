@@ -7,6 +7,7 @@ import { addSpend, importCsv, syncMonzo } from "./actions";
 import { buttonGhostClass } from "@/components/ui";
 import { readMonzoEnv } from "@/lib/monzo";
 import { getConnectorAccount } from "@/lib/services/connectors";
+import { connectorErrorMessage } from "@/lib/connector-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -67,11 +68,10 @@ export default async function SpendingPage(props: {
           </p>
         </Card>
       )}
-      {searchParams.error && (
+      {connectorErrorMessage(searchParams.error) && (
         <Card>
           <p className="text-sm text-danger">
-            Monzo connection failed ({searchParams.error}). Check the values
-            in .env.local and try again.
+            Monzo connection failed: {connectorErrorMessage(searchParams.error)}.
           </p>
         </Card>
       )}
