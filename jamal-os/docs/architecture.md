@@ -32,13 +32,28 @@ SQLite at data/jamal-os.db
 
 ## Connectors
 
-- `src/lib/email/`: `types.ts` defines `EmailProvider`;
-  `mock-provider.ts` reads the seeded inbox; `gmail-readonly-provider.ts`
-  is a scaffold hard-coded to the gmail.readonly scope
-- `src/lib/calendar/`: same pattern; local events are first-class rows
-  in `calendar_events` with `source_provider` and `write_status`
-- All connectors are opt-in and start in mock mode
-  (`connector_accounts.mode`)
+All connectors are opt-in, read-only, and implemented:
+
+- Gmail (`src/lib/email/gmail-readonly-provider.ts` + `gmail-mapper.ts`):
+  gmail.readonly scope only; Sync pulls unread snippets into
+  `email_messages`, deduped by message id
+- Google Calendar (`src/lib/calendar/google-provider.ts` + mapper):
+  calendar.readonly scope; Sync upserts the past 7 and next 60 days
+  into `calendar_events` by event id
+- Monzo (`src/lib/monzo.ts`): official personal API, GET-only; Sync
+  maps transactions into `spending` (pounds, category map, dedupe by
+  transaction id)
+- Apple Health / Garmin: the phone pushes Health Auto Export JSON to
+  `POST /api/health/ingest` (bearer token, constant-time compared,
+  512KB cap); parsing in `src/lib/health-ingest.ts` upserts
+  weight_logs, sleep_logs, and the generic health_metrics table
+
+OAuth plumbing: routes under `src/app/api/oauth/<provider>/` use a
+state cookie CSRF check; tokens are AES-256-GCM encrypted
+(`src/lib/crypto.ts`, key from LOCAL_ENCRYPTION_KEY) and stored in
+`connector_accounts.encrypted_token` with per-provider refresh in
+`src/lib/services/connectors.ts`. Mock providers still serve every
+feature when nothing is connected.
 
 ## Service layer
 
@@ -68,6 +83,25 @@ facts (structured, code-built)
 Prompt templates are plain text files in `/prompts`, loaded at call
 time, freely editable without code changes.
 
+## Voice agent
+
+The orb in the shell (`src/components/voice-agent.tsx`) uses the
+browser Web Speech API for input and speech synthesis for replies.
+Intent parsing and deterministic answers are pure logic in
+`src/lib/assistant.ts` (tested); the server action
+(`src/app/assistant/actions.ts`) answers data questions straight from
+SQLite, inserts tasks for "add a task to ...", and only sends
+free-form chat to the AI provider through the redaction path.
+
+## PWA shell
+
+`src/app/manifest.ts` plus icons in `/public` make the app
+installable; `public/sw.js` is a deliberately cache-free service
+worker (stale data would violate the truth rule), registered in
+production only. `dev:lan` / `start:lan` bind 0.0.0.0 for phone
+access. Security headers (frame deny, nosniff, no-referrer) are set
+in `next.config.ts`.
+
 ## Redaction flow
 
 Every outbound AI call is redacted. Patterns cover card numbers, NI
@@ -78,7 +112,8 @@ email bodies and sensitive memory items are withheld entirely.
 ## Permission model
 
 - `permission_rules` table is the registry shown in Settings
-- Gmail: read-only scope only, no send, ever
+- Gmail and Google Calendar: read-only scopes only, no send or write,
+  ever; Monzo: GET endpoints only
 - Calendar external writes: allowed only behind an explicit
   confirmation click; nothing implemented writes externally today
 - `audit_logs` records seeds, imports, local calendar writes, generated
