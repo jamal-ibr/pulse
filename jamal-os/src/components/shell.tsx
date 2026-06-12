@@ -21,6 +21,7 @@ const MORE_NAV: Array<[string, string]> = [
   ["/spending", "Spending"],
   ["/contacts", "Contacts"],
   ["/memory", "Memory"],
+  ["/journal", "Journal"],
   ["/email", "Email"],
   ["/calendar", "Calendar"],
   ["/settings", "Settings"],

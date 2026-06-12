@@ -263,3 +263,17 @@ Accepted risk, documented: server actions rely on Next.js built-in
 origin checks (fine for a single-user localhost app; do not expose
 the app publicly without adding authentication, as SETUP.md already
 states).
+
+## Journal page and roadmap reconciliation (June 2026)
+
+- The journal table existed since the MVP with no page over it (a
+  Phase 2 roadmap item). The Journal page is now live: dated entries
+  with an optional mood, add and delete, local only, never sent to
+  AI. Thin CRUD per the architecture rule, so logic lives in the
+  server actions with Zod validation.
+- PWA manifest gained home-screen shortcuts (habits, pipeline, tasks,
+  journal), closing a Phase 4 roadmap item.
+- docs/roadmap.md now records the true status of every phase instead
+  of presenting everything as future work. Remaining unbuilt items
+  are listed there honestly: calendar write, .ics import, AI email
+  categorisation, command palette, salah reminders, and Phases 5-6.
