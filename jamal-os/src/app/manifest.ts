@@ -1,0 +1,30 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "Jamal OS",
+    short_name: "Jamal OS",
+    description:
+      "Your private operating system for discipline, strategy, and becoming.",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#040c14",
+    theme_color: "#040c14",
+    shortcuts: [
+      { name: "Log habits", url: "/habits" },
+      { name: "Pulse pipeline", url: "/pipeline" },
+      { name: "Tasks", url: "/tasks" },
+      { name: "Journal", url: "/journal" },
+    ],
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      {
+        src: "/icon-maskable-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
+    ],
+  };
+}

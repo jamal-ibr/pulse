@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1781172868753,
+      "tag": "0000_dusty_felicia_hardy",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1781222453016,
+      "tag": "0001_sticky_black_cat",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1781228788219,
+      "tag": "0002_greedy_hellfire_club",
+      "breakpoints": true
+    }
+  ]
+}

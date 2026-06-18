@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+@theme {
+  /* JARVIS-inspired HUD palette: deep navy black with cyan instrumentation */
+  --color-bg: oklch(0.15 0.022 245);
+  --color-panel: oklch(0.19 0.026 242);
+  --color-panel-hover: oklch(0.22 0.03 240);
+  --color-edge: oklch(0.3 0.04 235);
+  --color-ink: oklch(0.93 0.012 220);
+  --color-ink-dim: oklch(0.7 0.028 225);
+  --color-ink-faint: oklch(0.52 0.032 230);
+  --color-accent: oklch(0.83 0.13 210);
+  --color-accent-dim: oklch(0.71 0.12 213);
+  --color-warn: oklch(0.83 0.14 85);
+  --color-danger: oklch(0.7 0.18 25);
+  --color-info: oklch(0.75 0.11 250);
+  --font-mono:
+    ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo,
+    Consolas, monospace;
+}
+
+html {
+  background: var(--color-bg);
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-bg);
+  background-image: radial-gradient(
+    ellipse 80% 50% at 50% -10%,
+    oklch(0.35 0.07 220 / 0.18),
+    transparent 70%
+  );
+  background-attachment: fixed;
+  color: var(--color-ink);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: oklch(0.83 0.13 210 / 0.3);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.32 0.04 235);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* HUD utilities */
+.glow-accent {
+  text-shadow: 0 0 12px oklch(0.83 0.13 210 / 0.55);
+}
+
+/* Dot inherits its glow colour from the element's text colour */
+.hud-dot {
+  box-shadow: 0 0 6px 1px currentColor;
+  animation: hud-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes hud-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-dot {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

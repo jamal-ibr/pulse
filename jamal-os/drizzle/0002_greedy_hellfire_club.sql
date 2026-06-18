@@ -1,0 +1,1 @@
+ALTER TABLE `spending` ADD `external_id` text;
