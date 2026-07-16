@@ -14,6 +14,13 @@ const envSchema = z.object({
   RETELL_API_KEY: z.string().default(""),
   RETELL_WEBHOOK_SECRET: z.string().default(""),
 
+  // Workflow webhook URLs - works with n8n, Make.com, Zapier, or anything
+  // that accepts a JSON POST. Generic names preferred; MAKE_* kept as
+  // legacy aliases.
+  LEAD_WEBHOOK_URL: z.string().default(""),
+  BOOKING_WEBHOOK_URL: z.string().default(""),
+  STAFF_ALERT_WEBHOOK_URL: z.string().default(""),
+  CALL_SUMMARY_WEBHOOK_URL: z.string().default(""),
   MAKE_LEAD_WEBHOOK_URL: z.string().default(""),
   MAKE_BOOKING_WEBHOOK_URL: z.string().default(""),
   MAKE_STAFF_ALERT_WEBHOOK_URL: z.string().default(""),
@@ -41,10 +48,10 @@ export const config = {
   retellWebhookSecret: env.RETELL_WEBHOOK_SECRET,
 
   makeWebhooks: {
-    lead: env.MAKE_LEAD_WEBHOOK_URL,
-    booking: env.MAKE_BOOKING_WEBHOOK_URL,
-    staffAlert: env.MAKE_STAFF_ALERT_WEBHOOK_URL,
-    callSummary: env.MAKE_CALL_SUMMARY_WEBHOOK_URL,
+    lead: env.LEAD_WEBHOOK_URL || env.MAKE_LEAD_WEBHOOK_URL,
+    booking: env.BOOKING_WEBHOOK_URL || env.MAKE_BOOKING_WEBHOOK_URL,
+    staffAlert: env.STAFF_ALERT_WEBHOOK_URL || env.MAKE_STAFF_ALERT_WEBHOOK_URL,
+    callSummary: env.CALL_SUMMARY_WEBHOOK_URL || env.MAKE_CALL_SUMMARY_WEBHOOK_URL,
   },
 } as const;
 
@@ -62,6 +69,6 @@ export function validateRequiredSecrets(warn: (msg: string) => void): void {
     (k) => !config.makeWebhooks[k],
   );
   if (missingHooks.length > 0) {
-    warn(`Make.com webhook URLs not configured (sends will be skipped): ${missingHooks.join(", ")}`);
+    warn(`Workflow webhook URLs not configured (sends will be skipped): ${missingHooks.join(", ")}`);
   }
 }

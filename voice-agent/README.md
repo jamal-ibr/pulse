@@ -123,17 +123,26 @@ In the Retell dashboard:
    `https://<your-tunnel-host>/retell/webhook`.
 3. Attach the Custom LLM agent to a Retell phone number.
 
-## 6. Create Make.com webhooks
+## 6. Create workflow webhooks (n8n recommended)
 
-In Make, create four scenarios each starting with a **Custom webhook** trigger,
-and paste the generated URLs into `.env`:
+The backend just POSTs JSON to four webhook URLs, so **n8n, Make.com and
+Zapier all work identically** — no code changes needed to switch.
+
+**n8n:** create four workflows, each starting with a **Webhook** node
+(HTTP method: POST). Activate each workflow and paste its **production**
+webhook URL into `.env`. From the Webhook node, chain whatever you like —
+Google Calendar node for bookings, Google Sheets for leads, Gmail/Slack
+for staff alerts. The JSON body arrives on the node's `body` property.
+
+**Make.com:** same idea with a Custom Webhook trigger; the legacy
+`MAKE_*_WEBHOOK_URL` env var names also still work.
 
 | Env var | Fires when | Sample payload |
 |---|---|---|
-| `MAKE_LEAD_WEBHOOK_URL` | caller is qualified (contact + intent) — once per call | see below |
-| `MAKE_BOOKING_WEBHOOK_URL` | booking intent + enough details — once per call | name, phone, treatment, preferred date/time |
-| `MAKE_STAFF_ALERT_WEBHOOK_URL` | human handover / callback / emergency — once per call | reason, urgency, symptoms |
-| `MAKE_CALL_SUMMARY_WEBHOOK_URL` | call ends — once per call | full lead + `summary_for_staff` |
+| `LEAD_WEBHOOK_URL` | caller is qualified (contact + intent) — once per call | see below |
+| `BOOKING_WEBHOOK_URL` | booking intent + enough details — once per call | name, phone, treatment, preferred date/time |
+| `STAFF_ALERT_WEBHOOK_URL` | human handover / callback / emergency — once per call | reason, urgency, symptoms |
+| `CALL_SUMMARY_WEBHOOK_URL` | call ends — once per call | full lead + `summary_for_staff` |
 
 Sample lead payload:
 
