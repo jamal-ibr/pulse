@@ -1,0 +1,38 @@
+name: "Digest: smoke test"
+
+# CI for the digest workspace: typecheck, unit tests, and a secrets-free
+# 7-day fetch + dedupe backfill that prints raw item counts per lane.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/daily-digest-agent-k1yc3a, main]
+    paths: ['digest/**', '.github/workflows/digest-smoke.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: digest/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefix digest
+
+      - name: Typecheck
+        run: npm run typecheck --prefix digest
+
+      - name: Unit tests
+        run: npm test --prefix digest
+
+      - name: Fetch + dedupe backfill (7 days, per-lane counts)
+        run: npm run digest --prefix digest -- --fetch-only --backfill 7

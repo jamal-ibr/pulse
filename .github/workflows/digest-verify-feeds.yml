@@ -1,0 +1,34 @@
+name: "Digest: verify feeds"
+
+# One-off / on-demand verification of candidate RSS feeds for the daily digest.
+# Runs on the Actions runner because it has unrestricted outbound network.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/daily-digest-agent-k1yc3a]
+    paths: ['digest/scripts/verify-feeds.mjs', '.github/workflows/digest-verify-feeds.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify candidate feeds
+        run: node digest/scripts/verify-feeds.mjs
+
+      - name: Upload verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: feed-verification
+          path: digest/data/feed-verification.json

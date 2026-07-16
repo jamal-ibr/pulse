@@ -15,3 +15,9 @@ pnpm-debug.log*
 # Python bytecode (from .claude skill scripts)
 __pycache__/
 *.pyc
+
+# Digest: content and personal data never enter this public repo
+archive/
+digest/proposals/
+digest/profile.local.yaml
+digest/sources.local.yaml

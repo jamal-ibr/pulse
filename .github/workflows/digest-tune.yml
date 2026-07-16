@@ -1,0 +1,37 @@
+name: Digest weekly tune
+
+# Sunday evening: summarise the week's ratings and propose (never apply)
+# edits to the triage prompt and sources.yaml.
+
+on:
+  schedule:
+    - cron: '0 17 * * 0'
+  workflow_dispatch:
+
+# Proposals are emailed, never committed or logged: they are written with the
+# personal reader context and this repository is public.
+permissions:
+  contents: read
+
+jobs:
+  tune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: digest/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --prefix digest
+
+      - name: Run tune
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DIGEST_PROFILE: ${{ secrets.DIGEST_PROFILE }}
+        run: npm run tune --prefix digest

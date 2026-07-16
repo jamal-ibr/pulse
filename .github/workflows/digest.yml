@@ -1,0 +1,114 @@
+name: Daily digest
+
+# 06:00 Europe/London year-round: cron is UTC, so run at both 05:00 and 06:00
+# UTC and let the guard step keep whichever run is 06:00 London time.
+# NOTE: scheduled workflows only fire on the default branch, so the cron goes
+# live once this branch is merged. workflow_dispatch works from any branch.
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Print the digest instead of emailing it'
+        type: boolean
+        default: false
+      backfill:
+        description: 'Backfill N days (no email); leave blank for a normal run'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Keep only the 06:00 Europe/London run
+        id: guard
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          elif [ "$(TZ=Europe/London date +%H)" = "06" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Not 06:00 in London; skipping this cron leg."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.run == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.guard.outputs.run == 'true'
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: digest/package-lock.json
+
+      - name: Install dependencies
+        if: steps.guard.outputs.run == 'true'
+        run: npm ci --prefix digest
+
+      - name: Run digest
+        if: steps.guard.outputs.run == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DIGEST_PROFILE: ${{ secrets.DIGEST_PROFILE }}
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          FLAGS=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then FLAGS="$FLAGS --dry-run"; fi
+          if [ -n "${{ inputs.backfill }}" ]; then FLAGS="$FLAGS --backfill ${{ inputs.backfill }}"; fi
+          npm run digest --prefix digest -- $FLAGS
+
+      # Only digest/data (seen cache + lane/source stats) is committed: digest
+      # content itself never enters this public repo, it goes by email only.
+      - name: Commit seen cache and feedback stats
+        if: steps.guard.outputs.run == 'true' && inputs.dry_run != true
+        run: |
+          git config user.name "digest-bot"
+          git config user.email "digest-bot@users.noreply.github.com"
+          git add digest/data || true
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+          else
+            git commit -m "chore(digest): archive and seen cache [skip ci]"
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      # Last-resort alert if the job dies before the run script can email the
+      # error itself. The recipient comes from the DIGEST_PROFILE secret so no
+      # email address lives in this public repo.
+      - name: Email the failure
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DIGEST_PROFILE: ${{ secrets.DIGEST_PROFILE }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e '
+            const recipient = (process.env.DIGEST_PROFILE || "").match(/recipient:\s*(\S+)/)?.[1];
+            if (!recipient) { console.error("No recipient in DIGEST_PROFILE; cannot send failure email"); process.exit(1); }
+            const body = {
+              from: "Digest <onboarding@resend.dev>",
+              to: [recipient],
+              subject: "Digest workflow FAILED",
+              text: "The daily digest workflow failed before it could report the error itself.\n\nRun: " + process.env.RUN_URL + "\n",
+            };
+            fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: { authorization: "Bearer " + process.env.RESEND_API_KEY, "content-type": "application/json" },
+              body: JSON.stringify(body),
+            }).then(async (r) => { console.log(r.status, await r.text()); process.exit(r.ok ? 0 : 1); });
+          '

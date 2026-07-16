@@ -1,0 +1,39 @@
+# Template for the reader profile. Copy the real version into the
+# DIGEST_PROFILE repository secret (Actions), or save it as
+# digest/profile.local.yaml (gitignored) for local runs.
+#
+# Everything personal goes here and ONLY here: this repo is public, so the
+# profile must never be committed.
+
+recipient: you@example.com
+
+# Optional: the email masthead and subject prefix. Defaults to "DAILY DIGEST".
+masthead: "DAILY DIGEST"
+
+# Things currently on the reader's plate. "Two Moves" may only reference
+# these; it must never invent new work. One line each.
+plate:
+  - "Example: a report section that needs citations"
+  - "Example: a drafted message waiting for a good opener"
+
+# The editorial context block, prepended to every triage and synthesis call.
+# Describe who the reader is and the specific uses that earn an item its
+# place. Be concrete: the models cut anything they cannot tie to a use.
+context: |
+  You are the editor of a private daily intelligence digest for one reader.
+
+  The reader:
+  - <role, employer, city>
+  - <study or qualification in progress, and its written deliverable>
+  - <career direction and target teams>
+  - <side business: what it sells, to whom, at what price point>
+
+  An item earns its place ONLY if it is usable in one of these ways:
+  1. <a networking conversation it feeds>
+  2. <a written deliverable it can be cited in>
+  3. <a commercial angle for the side business>
+  4. <a genuine shift in the technical landscape>
+  5. <a regulatory change affecting one of the lanes>
+
+  If an item does none of those things, it is cut. Marketing fluff, product
+  listicles, minor version bumps, and generic think pieces all fail the test.

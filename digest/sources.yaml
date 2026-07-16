@@ -1,0 +1,122 @@
+# Default sources for the daily digest, grouped by lane.
+#
+# Every feed URL below was fetched and verified on 2026-07-14 from the GitHub
+# Actions runner (see digest/data/feed-verification.json and the
+# "Digest: verify feeds" workflow). Sources with no working feed are covered
+# by search_topics, executed with the Anthropic web_search tool at run time.
+# Do not add a feed URL without verifying it first: push a candidate into
+# digest/scripts/verify-feeds.mjs and check the run log.
+#
+# This committed file is a neutral default. Lane and topic choices can reveal
+# personal priorities, so a private lane list belongs in the DIGEST_SOURCES
+# repository secret (same YAML shape), which overrides this file completely.
+# Locally, the gitignored digest/sources.local.yaml does the same.
+
+lanes:
+  - id: audit_ai
+    title: "AUDIT + AI"
+    weight: 5
+    feeds:
+      - id: accountancy_age
+        name: Accountancy Age
+        url: https://www.accountancyage.com/feed/
+      - id: accountingweb_uk
+        # WAF sometimes 403s GitHub runner IPs; the fetch failure is logged and
+        # non-fatal, and the lane's search topics cover the gap on those days.
+        name: AccountingWEB UK
+        url: https://www.accountingweb.co.uk/rss.xml
+      - id: iaasb
+        name: IAASB / IFAC
+        url: https://www.iaasb.org/rss.xml
+    search_topics:
+      # FRC, ICAEW and the Big Four newsrooms have no working feeds (verified 2026-07-14).
+      - "FRC Financial Reporting Council announcement audit"
+      - "Big Four AI audit"
+      - "agentic AI assurance"
+      - "audit technology investment"
+
+  - id: enterprise_ai
+    title: "ENTERPRISE AI"
+    weight: 4
+    feeds:
+      - id: openai_news
+        name: OpenAI news
+        url: https://openai.com/news/rss.xml
+      - id: databricks_blog
+        name: Databricks blog
+        url: https://www.databricks.com/feed
+      - id: azure_ai_blog
+        name: Azure AI blog
+        url: https://azure.microsoft.com/en-us/blog/category/ai-machine-learning/feed/
+      - id: google_cloud_ai
+        name: Google Cloud AI blog
+        url: https://cloudblog.withgoogle.com/products/ai-machine-learning/rss/
+      - id: huggingface_blog
+        name: Hugging Face blog
+        url: https://huggingface.co/blog/feed.xml
+    search_topics:
+      # Anthropic publishes no official RSS feed (verified 2026-07-14).
+      - "Anthropic Claude enterprise announcement"
+      - "MCP protocol"
+      - "agent evaluation"
+      - "enterprise agentic AI deployment"
+
+  - id: consulting
+    title: "CONSULTING MARKET"
+    weight: 3
+    feeds:
+      - id: mckinsey_insights
+        name: McKinsey insights
+        url: https://www.mckinsey.com/insights/rss
+    search_topics:
+      # BCG, Bain and Accenture have no working feeds (verified 2026-07-14).
+      - "AI strategy consulting"
+      - "AI due diligence M&A"
+      - "consulting AI practice hires"
+
+  - id: pulse
+    title: "PULSE"
+    weight: 4
+    feeds:
+      - id: dentistry_co_uk
+        name: Dentistry.co.uk
+        url: https://dentistry.co.uk/feed/
+      - id: bdj_news
+        name: British Dental Journal
+        url: https://www.nature.com/bdj.rss
+      - id: sifted
+        name: Sifted
+        url: https://sifted.eu/feed
+      - id: twilio_blog
+        name: Twilio blog
+        url: https://www.twilio.com/blog/feed
+    search_topics:
+      # Vapi, ElevenLabs, Retell, Vet Times and VetSurgeon have no reachable feeds (verified 2026-07-14).
+      - "Vapi voice AI release changelog"
+      - "ElevenLabs conversational AI agents release"
+      - "AI receptionist"
+      - "voice AI SMB"
+      - "UK dental practice group acquisition"
+
+  - id: regulation
+    title: "REGULATION"
+    weight: 4
+    feeds:
+      - id: fca_news
+        name: FCA news
+        url: https://www.fca.org.uk/news/rss.xml
+      - id: eu_digital_strategy
+        name: EU digital strategy
+        url: https://digital-strategy.ec.europa.eu/en/rss.xml
+      - id: eu_ai_act_tracker
+        name: EU AI Act tracker
+        url: https://artificialintelligenceact.eu/feed/
+      - id: gov_uk_dsit
+        name: GOV.UK DSIT
+        url: https://www.gov.uk/government/organisations/department-for-science-innovation-and-technology.atom
+    search_topics:
+      # ICO retired its RSS feeds; Ofcom blocks non-browser clients (verified 2026-07-14).
+      - "ICO enforcement AI data protection"
+      - "PECR enforcement cold calling"
+      - "EU AI Act GPAI obligations"
+      - "ICO AI guidance"

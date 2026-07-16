@@ -1,0 +1,40 @@
+# Runtime configuration for the daily digest. Nothing personal belongs in
+# this file: the recipient, reader context and "plate" list live in the
+# DIGEST_PROFILE secret (see profile.example.yaml), and API keys live in the
+# ANTHROPIC_API_KEY and RESEND_API_KEY secrets.
+
+# Resend requires a verified sender. The free onboarding sender delivers only
+# to the email your Resend account is registered under.
+sender: "Pulse Digest <onboarding@resend.dev>"
+timezone: Europe/London
+
+digest:
+  max_items: 8
+  min_triage_score: 3
+  radar_items: 3
+  window_hours: 24
+  monday_window_hours: 72
+  seen_cache_days: 14
+  per_feed_item_cap: 30
+
+models:
+  triage: claude-haiku-4-5-20251001
+  synthesis: claude-sonnet-5
+  triage_batch_size: 20
+
+web_search:
+  enabled: true
+  # One search call per lane, topics batched into the prompt. max_uses caps
+  # billable searches per lane; 6 lanes x 2 = 12 searches/day ~= GBP 2.90/month.
+  max_uses_per_lane: 2
+
+# USD per million tokens. Kept in config so price changes never need a code change.
+pricing:
+  usd_to_gbp: 0.79
+  web_search_per_1000: 10
+  models:
+    claude-haiku-4-5-20251001: { input: 1.00, output: 5.00, cache_write: 1.25, cache_read: 0.10 }
+    claude-sonnet-5: { input: 3.00, output: 15.00, cache_write: 3.75, cache_read: 0.30 }
+
+budget:
+  run_alert_gbp: 0.15

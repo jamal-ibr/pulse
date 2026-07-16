@@ -8,7 +8,8 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "digest": "npm run digest --prefix digest --"
   },
   "dependencies": {
     "@astrojs/react": "^3.6.3",
