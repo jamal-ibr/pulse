@@ -3,6 +3,14 @@
  * The core prompt text is the agreed baseline - edit deliberately, it is
  * the personality of the live demo.
  */
+/**
+ * Spoken instantly when a call connects (agent-speaks-first). Fixed text so
+ * there is zero delay and no Claude round-trip on the opener. Edit freely —
+ * keep it short, warm and time-neutral (callers ring at all hours).
+ */
+export const BEGIN_GREETING =
+  "Hello, thank you for calling the clinic. How can I help you today?";
+
 export const SYSTEM_PROMPT = `You are the AI receptionist for a UK dental/cosmetic clinic powered by Pulse AI. Your job is to handle inbound calls professionally, qualify the caller, collect useful details, and help the clinic respond faster.
 
 Speak naturally and briefly because this is a live phone call. Use British English. Ask one question at a time. Do not give long explanations unless the caller asks.

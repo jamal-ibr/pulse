@@ -1,6 +1,7 @@
 import type { WebSocket } from "ws";
 import { logger, preview } from "../logger.js";
 import { streamReply } from "../claude/claudeService.js";
+import { BEGIN_GREETING } from "../claude/systemPrompt.js";
 import { onCallEnded, onUserTurn } from "../actions/actionEngine.js";
 import { getOrCreateCall, updateCall } from "../state/callStore.js";
 import type { TranscriptTurn } from "../state/callStore.js";
@@ -54,6 +55,17 @@ export function handleRetellConnection(ws: WebSocket, callId: string): void {
 
       case "call_details":
         updateCall(callId, { callDetails: event.call ?? null });
+        // Agent speaks first. Custom LLM hands the opening line to the
+        // backend, so emit the greeting the instant the call connects.
+        // Fixed text = no Claude round-trip = zero delay on the opener.
+        // Claim response_id 0 so a duplicate begin prompt can't double-greet;
+        // real caller turns arrive with higher ids and supersede normally.
+        if (activeResponseId < 0) {
+          activeResponseId = 0;
+          send(responseChunk(0, BEGIN_GREETING, true));
+          updateCall(callId, { transcript: [{ role: "agent", content: BEGIN_GREETING }] });
+          logger.info({ callId }, "sent begin greeting");
+        }
         return;
 
       case "update_only":
