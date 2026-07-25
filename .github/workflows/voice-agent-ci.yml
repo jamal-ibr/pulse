@@ -1,0 +1,42 @@
+name: Voice Agent CI
+
+# Runs the typecheck + test suite on every push/PR that touches the
+# voice agent, so a broken change is visible on GitHub before (or just
+# after) Railway deploys it.
+on:
+  push:
+    paths:
+      - "voice-agent/**"
+      - ".github/workflows/voice-agent-ci.yml"
+  pull_request:
+    paths:
+      - "voice-agent/**"
+      - ".github/workflows/voice-agent-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: voice-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: voice-agent/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build (same steps as the Docker image)
+        run: npm run build

@@ -132,38 +132,79 @@ async function runExtractionAndActions(callId: string, trigger: "turn" | "call_e
 }
 
 /**
- * Gate every Make send on actionsTriggered via claimAction so nothing
+ * Retell tells us the number the caller rang from in the call_details
+ * event. Use it as the fallback contact number so the clinic always has
+ * someone to ring back, even when the caller never states a number.
+ */
+export function readCallerId(callDetails: Record<string, unknown> | null): string | null {
+  if (!callDetails) return null;
+  // TODO(retell): confirm the field name - observed as from_number.
+  const candidates = ["from_number", "from", "caller_number"];
+  for (const key of candidates) {
+    const value = callDetails[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+/**
+ * Gate every webhook send on actionsTriggered via claimAction so nothing
  * fires more than once per callId. All sends are fire-and-forget.
  */
 export function dispatchActions(callId: string, lead: ExtractedLead): void {
-  if (isQualifiedLead(lead) && claimAction(callId, "leadSent")) {
-    void sendLeadToMake({ callId, lead });
+  const call = getCall(callId);
+  const callerId = readCallerId(call?.callDetails ?? null);
+
+  // Fall back to the caller ID for the phone number so payloads are never
+  // left with a blank contact. Keep the raw lead for the "have they
+  // actually given us details yet?" decision below.
+  const enriched: ExtractedLead = { ...lead, caller_phone: lead.caller_phone ?? callerId };
+
+  if (isQualifiedLead(enriched) && claimAction(callId, "leadSent")) {
+    void sendLeadToMake({ callId, lead: enriched });
   }
 
-  if (isBookable(lead) && claimAction(callId, "bookingSent")) {
+  if (isBookable(enriched) && claimAction(callId, "bookingSent")) {
     void sendBookingRequestToMake({
       callId,
-      caller_name: lead.caller_name,
-      caller_phone: lead.caller_phone,
-      caller_email: lead.caller_email,
-      treatment_interest: lead.treatment_interest,
-      preferred_date: lead.preferred_date,
-      preferred_time: lead.preferred_time,
-      new_or_existing_patient: lead.new_or_existing_patient,
-      clinic_location_requested: lead.clinic_location_requested,
-      notes: lead.summary_for_staff,
+      caller_name: enriched.caller_name,
+      caller_phone: enriched.caller_phone,
+      caller_email: enriched.caller_email,
+      treatment_interest: enriched.treatment_interest,
+      preferred_date: enriched.preferred_date,
+      preferred_time: enriched.preferred_time,
+      new_or_existing_patient: enriched.new_or_existing_patient,
+      clinic_location_requested: enriched.clinic_location_requested,
+      notes: enriched.summary_for_staff,
     });
   }
 
-  if (needsStaffAlert(lead) && claimAction(callId, "staffAlertSent")) {
+  // Staff notification now fires for EVERY call, not just emergencies and
+  // callbacks - but it waits until the call is actually worth reporting:
+  //   - the caller has given contact details (phone or email), or
+  //   - it is urgent (emergency/handover/callback - report immediately,
+  //     even with no details, because they may hang up), or
+  //   - the call has ended (last chance: report it with whatever we have,
+  //     so no call ever goes unreported).
+  const detailsCaptured = Boolean(lead.caller_phone || lead.caller_email);
+  const urgent = needsStaffAlert(lead);
+  const callOver = Boolean(call?.callEndedAt);
+
+  if ((detailsCaptured || urgent || callOver) && claimAction(callId, "staffAlertSent")) {
     void sendStaffAlertToMake({
       callId,
-      reason: lead.next_action,
-      urgency: lead.urgency,
-      caller_name: lead.caller_name,
-      caller_phone: lead.caller_phone,
-      pain_or_symptoms: lead.pain_or_symptoms,
-      summary: lead.summary_for_staff,
+      reason: enriched.next_action,
+      urgency: enriched.urgency,
+      is_urgent: urgent,
+      caller_name: enriched.caller_name,
+      caller_phone: enriched.caller_phone,
+      caller_email: enriched.caller_email,
+      treatment_interest: enriched.treatment_interest,
+      preferred_date: enriched.preferred_date,
+      preferred_time: enriched.preferred_time,
+      new_or_existing_patient: enriched.new_or_existing_patient,
+      pain_or_symptoms: enriched.pain_or_symptoms,
+      summary: enriched.summary_for_staff,
     });
   }
 }

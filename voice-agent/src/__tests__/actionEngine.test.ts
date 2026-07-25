@@ -11,7 +11,7 @@ const make = await import("../make/makeClient.js");
 const { dispatchActions, likelyContainsStructuredInfo } = await import(
   "../actions/actionEngine.js"
 );
-const { getOrCreateCall, resetStore } = await import("../state/callStore.js");
+const { getOrCreateCall, resetStore, updateCall } = await import("../state/callStore.js");
 const { extractedLeadSchema } = await import("../extraction/leadSchema.js");
 
 const bookableLead = extractedLeadSchema.parse({
@@ -65,7 +65,54 @@ describe("dispatchActions idempotency", () => {
     dispatchActions("call-1", bookableLead);
     expect(make.sendLeadToMake).toHaveBeenCalledTimes(1);
     expect(make.sendBookingRequestToMake).toHaveBeenCalledTimes(1);
+  });
+
+  test("staff alert fires on an ordinary booking once details are captured", () => {
+    getOrCreateCall("call-1");
+    dispatchActions("call-1", bookableLead);
+    expect(make.sendStaffAlertToMake).toHaveBeenCalledTimes(1);
+    const payload = vi.mocked(make.sendStaffAlertToMake).mock.calls[0][0];
+    expect(payload.caller_phone).toBe("07700 900123");
+    expect(payload.is_urgent).toBe(false);
+  });
+
+  test("staff alert waits while no contact details have been given", () => {
+    getOrCreateCall("call-1");
+    dispatchActions("call-1", {
+      ...bookableLead,
+      caller_phone: null,
+      caller_email: null,
+      next_action: "answer_question",
+      urgency: "flexible",
+    });
     expect(make.sendStaffAlertToMake).not.toHaveBeenCalled();
+  });
+
+  test("falls back to the Retell caller ID when no number was stated", () => {
+    // Caller gave an email but never read out a phone number - the clinic
+    // should still get the number they rang from.
+    getOrCreateCall("call-1");
+    updateCall("call-1", { callDetails: { from_number: "+447700900999" } });
+    dispatchActions("call-1", {
+      ...bookableLead,
+      caller_phone: null,
+      caller_email: "sophie@example.com",
+    });
+    const payload = vi.mocked(make.sendStaffAlertToMake).mock.calls[0][0];
+    expect(payload.caller_phone).toBe("+447700900999");
+  });
+
+  test("reports the call at hangup even with no details at all", () => {
+    getOrCreateCall("call-1");
+    updateCall("call-1", { callEndedAt: new Date().toISOString() });
+    dispatchActions("call-1", {
+      ...bookableLead,
+      caller_phone: null,
+      caller_email: null,
+      next_action: "answer_question",
+      urgency: "flexible",
+    });
+    expect(make.sendStaffAlertToMake).toHaveBeenCalledTimes(1);
   });
 
   test("never fires the same action twice for one call", () => {
