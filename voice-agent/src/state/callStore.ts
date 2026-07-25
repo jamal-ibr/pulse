@@ -34,6 +34,11 @@ export interface CallState {
   userTurnsSinceExtraction: number;
   /** Guards against overlapping extraction calls for the same call. */
   extractionInFlight: boolean;
+  /**
+   * Live diary availability for this call: prompt-ready text listing the
+   * slots the agent may actually offer. Null until the lookup resolves.
+   */
+  availabilityContext: string | null;
 }
 
 const calls = new Map<string, CallState>();
@@ -58,6 +63,7 @@ function newCallState(callId: string): CallState {
     callDetails: null,
     userTurnsSinceExtraction: 0,
     extractionInFlight: false,
+    availabilityContext: null,
   };
 }
 

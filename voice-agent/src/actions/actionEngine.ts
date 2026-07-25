@@ -13,6 +13,7 @@ import {
   sendStaffAlertToMake,
 } from "../make/makeClient.js";
 import { claimAction, getCall, markCallEnded, updateCall } from "../state/callStore.js";
+import { SLOT_MINUTES } from "../scheduling/openingHours.js";
 
 /**
  * App-side action logic. Everything here runs OFF the caller-facing path:
@@ -120,7 +121,7 @@ async function runExtractionAndActions(callId: string, trigger: "turn" | "call_e
 
   updateCall(callId, { extractionInFlight: true, userTurnsSinceExtraction: 0 });
   try {
-    const lead = await extractLead(callId, call.transcript);
+    const lead = await extractLead(callId, call.transcript, call.availabilityContext);
     if (lead) {
       updateCall(callId, { extractedLead: lead });
       dispatchActions(callId, lead);
@@ -173,6 +174,14 @@ export function dispatchActions(callId: string, lead: ExtractedLead): void {
       treatment_interest: enriched.treatment_interest,
       preferred_date: enriched.preferred_date,
       preferred_time: enriched.preferred_time,
+      // Set when the agent confirmed a real diary slot. n8n should create
+      // the calendar event at this exact time; fall back to the free-text
+      // preference only when it is null.
+      confirmed_start: enriched.confirmed_slot_iso,
+      confirmed_end: enriched.confirmed_slot_iso
+        ? new Date(new Date(enriched.confirmed_slot_iso).getTime() + SLOT_MINUTES * 60_000).toISOString()
+        : null,
+      is_confirmed: Boolean(enriched.confirmed_slot_iso),
       new_or_existing_patient: enriched.new_or_existing_patient,
       clinic_location_requested: enriched.clinic_location_requested,
       notes: enriched.summary_for_staff,

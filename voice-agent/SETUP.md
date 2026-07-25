@@ -137,7 +137,55 @@ centrepiece. All four start the same way:
       `{{ $json.body.turnCount }}`
 - [ ] Activate, copy production URL → `.env` as `CALL_SUMMARY_WEBHOOK_URL=`
 
-### 3e. Test the wiring from your machine
+### 3e. Availability → real bookings (this is what makes it a receptionist)
+
+Without this, the agent takes preferences and says "the team will confirm".
+With it, the agent sees your real diary, offers genuinely free times, and
+confirms the booking on the call.
+
+- [ ] Create workflow "Pulse — Availability" with a Webhook node (path `pulse-availability`), method `POST`
+- [ ] **Important:** set the Webhook node's *Respond* option to **Using 'Respond to Webhook' node** (the backend needs the reply, not just an ack)
+- [ ] Add a **Google Calendar** node: operation **Get Many** events
+  - [ ] Calendar: the one the agent books into
+  - [ ] After Start / Before End: use `{{ $json.body.from }}` and `{{ $json.body.to }}`
+- [ ] Add a **Code** node to shape the response into what the backend expects:
+  ```javascript
+  return [{
+    json: {
+      busy: items.map(i => ({
+        start: i.json.start?.dateTime || i.json.start?.date,
+        end:   i.json.end?.dateTime   || i.json.end?.date,
+      })).filter(b => b.start && b.end)
+    }
+  }];
+  ```
+- [ ] Add a **Respond to Webhook** node: respond with **JSON**, body `{{ JSON.stringify($json) }}`
+- [ ] Activate, copy production URL → `.env` as `AVAILABILITY_WEBHOOK_URL=`
+- [ ] Restart the server, then check the logs on the next call for
+      `availability loaded` with a `free` count
+
+**Booking at the confirmed time:** the booking payload now includes
+`confirmed_start` / `confirmed_end` (exact ISO times) and `is_confirmed`
+when the agent confirmed a real slot. Update your **booking → Google
+Calendar** node to use them instead of the "tomorrow 9am" placeholder:
+
+- [ ] Start: `{{ $json.body.confirmed_start || $now.plus(1,'day').set({hour:9,minute:0}) }}`
+- [ ] End: `{{ $json.body.confirmed_end || $now.plus(1,'day').set({hour:9,minute:30}) }}`
+- [ ] Title: `{{ $json.body.is_confirmed ? "BOOKED" : "CONFIRM" }}: {{ $json.body.treatment_interest }} — {{ $json.body.caller_name }}`
+
+### 3f. Confirmation text message (optional)
+
+- [ ] Sign up for **Twilio** (or MessageBird/Vonage) and buy an SMS-capable number
+- [ ] In your **booking** workflow, add a **Twilio → Send SMS** node after the Calendar node
+- [ ] To: `{{ $json.body.caller_phone }}`
+- [ ] Message:
+      ```
+      Hi {{ $json.body.caller_name }}, your {{ $json.body.treatment_interest }} appointment is confirmed. See you soon — the clinic.
+      ```
+- [ ] Optional: add an **IF** node before it so texts only send when
+      `{{ $json.body.is_confirmed }}` is true
+
+### 3g. Test the wiring from your machine
 
 - [ ] Restart the dev server (Ctrl-C, `npm run dev`) so it picks up the new `.env`
 - [ ] Fire a test booking payload through the backend:

@@ -23,6 +23,7 @@ const bookableLead = extractedLeadSchema.parse({
   urgency: "flexible",
   preferred_date: null,
   preferred_time: "morning",
+  confirmed_slot_iso: null,
   budget_or_price_question: null,
   pain_or_symptoms: null,
   new_or_existing_patient: "new",

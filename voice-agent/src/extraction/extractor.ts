@@ -29,9 +29,17 @@ function renderTranscript(transcript: TranscriptTurn[]): string {
 export async function extractLead(
   callId: string,
   transcript: TranscriptTurn[],
+  availabilityContext?: string | null,
 ): Promise<ExtractedLead | null> {
   const text = renderTranscript(transcript);
   if (!text) return null;
+
+  // Giving the extractor the same slot list the agent saw lets it return
+  // the exact ISO timestamp of whatever was confirmed, so the calendar
+  // event is created at the real time rather than a placeholder.
+  const slotReference = availabilityContext
+    ? `\n\nThese are the slots the receptionist could offer on this call. If a specific appointment was confirmed, set confirmed_slot_iso to that slot's exact bracketed ISO timestamp; otherwise null.\n${availabilityContext}`
+    : "";
 
   try {
     const response = await anthropicClient.messages.create({
@@ -47,7 +55,7 @@ export async function extractLead(
       messages: [
         {
           role: "user",
-          content: `Extract the lead data from this call transcript:\n\n${text}`,
+          content: `Extract the lead data from this call transcript:\n\n${text}${slotReference}`,
         },
       ],
     });

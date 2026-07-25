@@ -17,6 +17,8 @@ const envSchema = z.object({
   // Workflow webhook URLs - works with n8n, Make.com, Zapier, or anything
   // that accepts a JSON POST. Generic names preferred; MAKE_* kept as
   // legacy aliases.
+  // Returns busy calendar blocks so the agent can offer real slots.
+  AVAILABILITY_WEBHOOK_URL: z.string().default(""),
   LEAD_WEBHOOK_URL: z.string().default(""),
   BOOKING_WEBHOOK_URL: z.string().default(""),
   STAFF_ALERT_WEBHOOK_URL: z.string().default(""),
@@ -46,6 +48,8 @@ export const config = {
 
   retellApiKey: env.RETELL_API_KEY,
   retellWebhookSecret: env.RETELL_WEBHOOK_SECRET,
+
+  availabilityWebhookUrl: env.AVAILABILITY_WEBHOOK_URL,
 
   makeWebhooks: {
     lead: env.LEAD_WEBHOOK_URL || env.MAKE_LEAD_WEBHOOK_URL,

@@ -2,6 +2,7 @@ import type { WebSocket } from "ws";
 import { logger, preview } from "../logger.js";
 import { streamReply } from "../claude/claudeService.js";
 import { BEGIN_GREETING } from "../claude/systemPrompt.js";
+import { loadAvailability } from "../scheduling/availability.js";
 import { onCallEnded, onUserTurn } from "../actions/actionEngine.js";
 import { getOrCreateCall, updateCall } from "../state/callStore.js";
 import type { TranscriptTurn } from "../state/callStore.js";
@@ -36,6 +37,14 @@ export function handleRetellConnection(ws: WebSocket, callId: string): void {
   };
 
   send(configEvent());
+
+  // Look up the diary immediately, in the background. The fixed greeting
+  // and the caller's opening sentence buy several seconds, so this is
+  // almost always ready before the first real reply - and it never blocks
+  // the response path if it is slow.
+  void loadAvailability(callId).then((snapshot) => {
+    updateCall(callId, { availabilityContext: snapshot.promptContext });
+  });
 
   ws.on("message", (raw) => {
     let event;
@@ -108,6 +117,7 @@ export function handleRetellConnection(ws: WebSocket, callId: string): void {
       callId,
       transcript: call.transcript,
       isReminder,
+      availabilityContext: call.availabilityContext,
       signal,
       onDelta: (delta) => {
         if (signal.aborted || responseId !== activeResponseId) return;

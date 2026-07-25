@@ -16,6 +16,7 @@ const validLead: ExtractedLead = {
   urgency: "flexible",
   preferred_date: "2026-08-10",
   preferred_time: "morning",
+  confirmed_slot_iso: null,
   budget_or_price_question: "asked about whitening cost",
   pain_or_symptoms: null,
   new_or_existing_patient: "new",

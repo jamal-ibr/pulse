@@ -38,6 +38,11 @@ export const extractedLeadSchema = z.object({
   urgency: z.enum(URGENCY_LEVELS),
   preferred_date: z.string().nullable(),
   preferred_time: z.string().nullable(),
+  /**
+   * ISO timestamp of the slot the receptionist actually confirmed, copied
+   * from the LIVE AVAILABILITY list. Null when nothing was confirmed.
+   */
+  confirmed_slot_iso: z.string().nullable(),
   budget_or_price_question: z.string().nullable(),
   pain_or_symptoms: z.string().nullable(),
   new_or_existing_patient: z.enum(PATIENT_STATUS),
@@ -64,6 +69,7 @@ export const extractedLeadJsonSchema = {
     urgency: { type: "string", enum: [...URGENCY_LEVELS] },
     preferred_date: { type: ["string", "null"] },
     preferred_time: { type: ["string", "null"] },
+    confirmed_slot_iso: { type: ["string", "null"] },
     budget_or_price_question: { type: ["string", "null"] },
     pain_or_symptoms: { type: ["string", "null"] },
     new_or_existing_patient: { type: "string", enum: [...PATIENT_STATUS] },
@@ -80,6 +86,7 @@ export const extractedLeadJsonSchema = {
     "urgency",
     "preferred_date",
     "preferred_time",
+    "confirmed_slot_iso",
     "budget_or_price_question",
     "pain_or_symptoms",
     "new_or_existing_patient",

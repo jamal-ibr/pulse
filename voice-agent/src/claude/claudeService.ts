@@ -41,6 +41,8 @@ export interface StreamReplyOptions {
   transcript: TranscriptTurn[];
   /** Set for reminder_required: nudges the model to gently re-engage. */
   isReminder?: boolean;
+  /** Live diary availability, appended to the system prompt for this turn. */
+  availabilityContext?: string | null;
   signal?: AbortSignal;
   /** Called with each text delta as it streams from Claude. */
   onDelta: (text: string) => void;
@@ -52,8 +54,13 @@ export interface StreamReplyOptions {
  * caller-facing path never crashes mid-call.
  */
 export async function streamReply(options: StreamReplyOptions): Promise<string> {
-  const { callId, transcript, isReminder, signal, onDelta } = options;
+  const { callId, transcript, isReminder, availabilityContext, signal, onDelta } = options;
   const messages = transcriptToMessages(transcript);
+
+  // Availability changes per call, so it goes after the stable prompt.
+  const system = availabilityContext
+    ? `${SYSTEM_PROMPT}\n\n${availabilityContext}`
+    : SYSTEM_PROMPT;
 
   if (isReminder) {
     messages.push({
@@ -68,7 +75,7 @@ export async function streamReply(options: StreamReplyOptions): Promise<string> 
       {
         model: config.claudeModel,
         max_tokens: MAX_REPLY_TOKENS,
-        system: SYSTEM_PROMPT,
+        system,
         messages,
       },
       { signal },
