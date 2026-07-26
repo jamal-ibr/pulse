@@ -18,6 +18,8 @@ export interface ActionsTriggered {
   leadSent: boolean;
   bookingSent: boolean;
   urgentAlertSent: boolean;
+  /** Outbound call placed to the owner (escalation fallback). */
+  ownerCalled: boolean;
   summarySent: boolean;
 }
 
@@ -66,6 +68,7 @@ function newCallState(callId: string): CallState {
       leadSent: false,
       bookingSent: false,
       urgentAlertSent: false,
+      ownerCalled: false,
       summarySent: false,
     },
     callStartedAt: new Date().toISOString(),

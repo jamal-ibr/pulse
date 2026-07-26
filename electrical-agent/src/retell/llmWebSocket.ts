@@ -148,8 +148,10 @@ export function handleRetellConnection(ws: WebSocket, callId: string): void {
             transferStage: call.transferStage,
             alreadyFailed: call.transferFailed,
           },
-          "transfer NOT possible - agent will take a message instead",
+          "transfer NOT possible - ringing the owner directly instead",
         );
+        // Can't bridge the caller across, so ring the owner ourselves.
+        void onTransferAttempted(callId, "unavailable");
       }
     }
 

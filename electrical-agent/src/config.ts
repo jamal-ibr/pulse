@@ -34,6 +34,14 @@ const envSchema = z.object({
     .optional()
     .transform((v) => ["true", "1", "yes", "on"].includes((v ?? "").trim().toLowerCase())),
 
+  /**
+   * A Retell number you own, used as the caller ID when the backend rings
+   * the owner directly. Required for the outbound escalation fallback.
+   */
+  RETELL_FROM_NUMBER: z.string().default(""),
+  /** Optional Retell agent that reads the briefing to the owner. */
+  OWNER_NOTIFY_AGENT_ID: z.string().default(""),
+
   /** How many engineers can be on jobs at once (diary capacity per slot). */
   ENGINEER_CAPACITY: z.coerce.number().int().positive().default(3),
 
@@ -69,6 +77,8 @@ export const config = {
 
   ownerTransferNumber: env.OWNER_TRANSFER_NUMBER,
   transferWorkingHoursOnly: env.TRANSFER_WORKING_HOURS_ONLY,
+  retellFromNumber: env.RETELL_FROM_NUMBER,
+  ownerNotifyAgentId: env.OWNER_NOTIFY_AGENT_ID,
   engineerCapacity: env.ENGINEER_CAPACITY,
 
   availabilityWebhookUrl: env.AVAILABILITY_WEBHOOK_URL,

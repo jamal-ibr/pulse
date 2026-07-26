@@ -190,3 +190,30 @@ describe("TRANSFER_WORKING_HOURS_ONLY parsing", () => {
     expect(parse(input)).toBe(expected);
   });
 });
+
+describe("owner briefing for the outbound escalation call", () => {
+  test("leads with the fault, address and callback number", async () => {
+    const { buildOwnerBriefing } = await import("../retell/outboundCall.js");
+    const text = buildOwnerBriefing({
+      callId: "c1",
+      callerNumber: "07497968597",
+      job: {
+        job_address: "5 Mendip Road, Birmingham",
+        postcode: "B8 3JF",
+        job_description: "Sparking in the fuse box",
+        safety_flags: ["sparks_or_arcing"],
+      } as never,
+    });
+    expect(text).toContain("Sparking in the fuse box");
+    expect(text).toContain("5 Mendip Road");
+    expect(text).toContain("07497968597");
+    expect(text).toContain("sparks_or_arcing");
+  });
+
+  test("still produces a usable briefing when nothing was captured", async () => {
+    const { buildOwnerBriefing } = await import("../retell/outboundCall.js");
+    const text = buildOwnerBriefing({ callId: "c1", callerNumber: null, job: null });
+    expect(text).toContain("Urgent call");
+    expect(text).toContain("did not capture");
+  });
+});

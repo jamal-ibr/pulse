@@ -13,6 +13,7 @@ import {
   sendUrgentAlert,
 } from "../workflows/workflowClient.js";
 import { claimAction, getCall, markCallEnded, updateCall } from "../state/callStore.js";
+import { callOwnerWithBriefing } from "../retell/outboundCall.js";
 
 /**
  * App-side action logic. Everything here runs OFF the caller-facing path:
@@ -77,7 +78,7 @@ export async function onUserTurn(callId: string, utterance: string): Promise<voi
  */
 export async function onTransferAttempted(
   callId: string,
-  stage: "flagged" | "initiated" | "failed",
+  stage: "flagged" | "initiated" | "failed" | "unavailable",
 ): Promise<void> {
   const call = getCall(callId);
   if (!call) return;
@@ -92,6 +93,23 @@ export async function onTransferAttempted(
 
   const job = getCall(callId)?.extractedJob ?? null;
   fireUrgentAlert(callId, job, stage);
+
+  // The live bridge did not connect. Ring the owner directly so the
+  // escalation still lands on his phone rather than only in his inbox.
+  if (stage === "failed" || stage === "unavailable") {
+    ringOwnerDirectly(callId, job);
+  }
+}
+
+/** Outbound call to the owner - claim-gated so he is rung at most once. */
+export function ringOwnerDirectly(callId: string, job: ExtractedJob | null): void {
+  if (!claimAction(callId, "ownerCalled")) return;
+  const call = getCall(callId);
+  void callOwnerWithBriefing({
+    callId,
+    job,
+    callerNumber: job?.caller_phone ?? readCallerId(call?.callDetails ?? null),
+  });
 }
 
 /**
