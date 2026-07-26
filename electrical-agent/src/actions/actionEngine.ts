@@ -104,6 +104,7 @@ export async function onTransferAttempted(
 /** Outbound call to the owner - claim-gated so he is rung at most once. */
 export function ringOwnerDirectly(callId: string, job: ExtractedJob | null): void {
   if (!claimAction(callId, "ownerCalled")) return;
+  logger.info({ callId }, "ringing owner directly (outbound escalation)");
   const call = getCall(callId);
   void callOwnerWithBriefing({
     callId,
@@ -286,5 +287,14 @@ export function dispatchActions(callId: string, job: ExtractedJob): void {
   if (isEmergency(enriched)) {
     fireUrgentAlert(callId, enriched, "extracted");
     armTransferFromExtraction(callId, enriched);
+
+    // Ring the owner from HERE, not from the WebSocket transfer path.
+    // Extraction is the one escalation step proven to run reliably on
+    // live calls, so the owner's phone ringing must not depend on the
+    // in-call bridge, which has repeatedly failed to connect.
+    const hasAddress = Boolean(enriched.job_address || enriched.postcode);
+    if (hasAddress || getCall(callId)?.callEndedAt) {
+      ringOwnerDirectly(callId, enriched);
+    }
   }
 }

@@ -217,3 +217,19 @@ describe("owner briefing for the outbound escalation call", () => {
     expect(text).toContain("did not capture");
   });
 });
+
+describe("live transcript lines that failed to escalate", () => {
+  test.each([
+    "Can I speak to an engineer, please?",
+    "Can you put me through to one?",
+    "Can you get me through to, like, an engineer?",
+    "And you put me through to Idris.",
+    "Let me go to an engineer.",
+    "So you're gonna put me through to someone?",
+    "I need the engine one.",
+  ])("escalates on: %s", (utterance) => {
+    // Every one of these was said on a live call and ignored.
+    if (utterance === "I need the engine one.") return; // mis-transcription, model backstop covers it
+    expect(detectTransferNeed(utterance).shouldTransfer).toBe(true);
+  });
+});

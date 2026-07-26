@@ -62,10 +62,11 @@ function hasUnnegatedHazard(utterance: string): boolean {
 /** Caller explicitly asking for a human. */
 const HUMAN_REQUEST_PATTERN = new RegExp(
   [
-    "speak (?:to|with) (?:a |an )?(?:real )?(?:person|human|someone|somebody)",
-    "talk (?:to|with) (?:a |an )?(?:real )?(?:person|human|someone|somebody)",
-    "speak (?:to|with) (?:the )?(?:owner|boss|manager|electrician|engineer)",
-    "put me through|transfer me|get me through",
+    // Articles vary wildly in speech ("the engineer", "an engineer",
+    // "engineer") so keep them all optional.
+    "(?:speak|talk|get|go|put me) (?:to|with|through to) (?:a |an |the )?(?:real )?(?:person|human|someone|somebody|owner|boss|manager|electrician|engineer|guy)",
+    "put me through|transfer me|get me through|pass me (?:to|over)",
+    "(?:can|could) (?:i|you) .{0,20}(?:speak|talk) .{0,15}(?:person|human|someone|engineer|owner)",
     "is (?:there )?(?:a |any )?(?:real )?(?:person|human)",
     "are you (?:a )?(?:robot|bot|ai|computer|machine)",
   ].join("|"),

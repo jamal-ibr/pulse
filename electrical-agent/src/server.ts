@@ -10,6 +10,7 @@ import { extractJob } from "./extraction/extractor.js";
 import { getCall } from "./state/callStore.js";
 import { loadAvailability } from "./scheduling/availability.js";
 import { canConnectNow, detectTransferNeed } from "./retell/transfer.js";
+import { BUILD_TAG } from "./buildInfo.js";
 
 const WS_PATH_PATTERN = /^\/retell\/llm\/([^/?#]+)/;
 
@@ -19,9 +20,12 @@ export async function buildServer() {
   app.get("/health", async () => ({
     status: "ok",
     service: "pulse-electrical-agent",
+    // If this is not the tag you just deployed, the build did not land.
+    buildTag: BUILD_TAG,
     business: config.businessName,
     model: config.claudeModel,
     transferConfigured: Boolean(config.ownerTransferNumber),
+    outboundCallConfigured: Boolean(config.retellApiKey && config.retellFromNumber),
     uptimeSeconds: Math.round(process.uptime()),
   }));
 
