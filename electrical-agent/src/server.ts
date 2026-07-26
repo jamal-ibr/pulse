@@ -9,6 +9,7 @@ import { postToWorkflow } from "./workflows/workflowClient.js";
 import { extractJob } from "./extraction/extractor.js";
 import { getCall } from "./state/callStore.js";
 import { loadAvailability } from "./scheduling/availability.js";
+import { canConnectNow, detectTransferNeed } from "./retell/transfer.js";
 
 const WS_PATH_PATTERN = /^\/retell\/llm\/([^/?#]+)/;
 
@@ -25,6 +26,21 @@ export async function buildServer() {
   }));
 
   registerRetellWebhook(app);
+
+  // Confirms the escalation path is wired, and shows how a given phrase
+  // would be classified - so you can test detection from a browser.
+  app.get("/internal/transfer-check", async (request) => {
+    const phrase = (request.query as Record<string, string>)?.phrase;
+    const number = config.ownerTransferNumber;
+    return {
+      transferConfigured: Boolean(number),
+      numberLooksValid: /^\+\d{10,15}$/.test(number),
+      numberPreview: number ? `${number.slice(0, 4)}…${number.slice(-3)}` : null,
+      transferWorkingHoursOnly: config.transferWorkingHoursOnly,
+      canConnectNow: canConnectNow(),
+      ...(phrase ? { phrase, detection: detectTransferNeed(phrase) } : {}),
+    };
+  });
 
   // Check what the agent would currently offer - useful when setting up
   // the availability workflow, and for a quick demo sanity check.

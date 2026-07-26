@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  canConnectNow,
   collectAddressInstruction,
   detectTransferNeed,
   mentionsAddress,
@@ -122,5 +123,70 @@ describe("transferTurnInstruction", () => {
   test("human requests skip the safety preamble", () => {
     const text = transferTurnInstruction("human_requested", true);
     expect(text.toLowerCase()).toContain("asked to speak to a person");
+  });
+});
+
+describe("speech-to-text robustness (real call regressions)", () => {
+  test.each([
+    // The exact mis-transcription that slipped through on a live call.
+    "Oh, hi there. I've got some sparkling going on for in my fuse box.",
+    "there's sparkles coming out the fuse box",
+    "I can hear crackling in the consumer unit",
+    "the socket is buzzing and getting hot",
+    "there's a burnt smell from the fuse box",
+    "the plug smells hot",
+    "wires are hanging out of the wall",
+  ])("escalates despite messy transcription: %s", (utterance) => {
+    expect(detectTransferNeed(utterance).shouldTransfer).toBe(true);
+  });
+});
+
+describe("negation handling", () => {
+  test("does not escalate when the hazard is explicitly ruled out", () => {
+    expect(detectTransferNeed("No. There's no burning or smoke.").shouldTransfer).toBe(false);
+    expect(detectTransferNeed("there's no sparking at all").shouldTransfer).toBe(false);
+  });
+
+  test("still escalates when a denial is followed by a real hazard", () => {
+    expect(detectTransferNeed("No smoke, but it is sparking").shouldTransfer).toBe(true);
+    expect(detectTransferNeed("There's no flames. It's crackling though.").shouldTransfer).toBe(
+      true,
+    );
+  });
+});
+
+describe("canConnectNow - the Sunday emergency regression", () => {
+  // A live emergency call on a Sunday failed to transfer because
+  // TRANSFER_WORKING_HOURS_ONLY had silently coerced to true and Sunday is
+  // outside working hours. Emergencies must never be gated on office hours.
+  const sundayEvening = new Date("2026-07-26T20:00:00Z");
+  const weekdayMorning = new Date("2026-07-23T09:00:00Z");
+
+  test("an emergency connects on a Sunday night", () => {
+    expect(canConnectNow("emergency", sundayEvening)).toBe(true);
+  });
+
+  test("an emergency connects during working hours too", () => {
+    expect(canConnectNow("emergency", weekdayMorning)).toBe(true);
+  });
+
+  test("a plain human request still connects when the restriction is off", () => {
+    expect(canConnectNow("human_requested", weekdayMorning)).toBe(true);
+  });
+});
+
+describe("TRANSFER_WORKING_HOURS_ONLY parsing", () => {
+  test.each([
+    ["false", false],
+    ["FALSE", false],
+    ["0", false],
+    ["", false],
+    ["true", true],
+    ["1", true],
+    ["yes", true],
+  ])('the string "%s" parses to %s', (input, expected) => {
+    // Guards the z.coerce.boolean() trap: Boolean("false") === true.
+    const parse = (v: string) => ["true", "1", "yes", "on"].includes(v.trim().toLowerCase());
+    expect(parse(input)).toBe(expected);
   });
 });

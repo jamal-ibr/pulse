@@ -198,6 +198,29 @@ function fireUrgentAlert(callId: string, job: ExtractedJob | null, stage: string
 }
 
 /**
+ * Second safety net for escalation.
+ *
+ * The keyword detector is fast but literal, and speech-to-text mangles the
+ * exact words ("sparking" came through as "sparkling" on a live call and
+ * was missed). The extraction pass reads the whole conversation with the
+ * model's understanding, so if IT concludes this is an emergency we arm
+ * the transfer too. Slower than the keyword path, but it catches what
+ * pattern matching cannot.
+ */
+function armTransferFromExtraction(callId: string, job: ExtractedJob): void {
+  const call = getCall(callId);
+  if (!call) return;
+  if (call.transferInitiatedAt || call.pendingTransferReason || call.transferFailed) return;
+
+  const hasAddress = Boolean(job.job_address || job.postcode);
+  logger.info({ callId, jobType: job.job_type, hasAddress }, "transfer armed from extraction");
+  updateCall(callId, {
+    pendingTransferReason: "emergency",
+    transferStage: hasAddress ? "ready" : "collecting_address",
+  });
+}
+
+/**
  * Gate every webhook send on actionsTriggered via claimAction so nothing
  * fires more than once per callId. All sends are fire-and-forget.
  */
@@ -244,5 +267,6 @@ export function dispatchActions(callId: string, job: ExtractedJob): void {
   // put through (e.g. they described a burning smell in passing).
   if (isEmergency(enriched)) {
     fireUrgentAlert(callId, enriched, "extracted");
+    armTransferFromExtraction(callId, enriched);
   }
 }

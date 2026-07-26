@@ -8,6 +8,7 @@ import { getOrCreateCall, updateCall } from "../state/callStore.js";
 import type { TranscriptTurn } from "../state/callStore.js";
 import { loadAvailability } from "../scheduling/availability.js";
 import {
+  canConnectNow,
   collectAddressInstruction,
   detectTransferNeed,
   mentionsAddress,
@@ -129,13 +130,27 @@ export function handleRetellConnection(ws: WebSocket, callId: string): void {
     const reason = call.pendingTransferReason;
     const isReady = call.transferStage === "ready";
     const canConnect =
-      Boolean(reason) && isReady && Boolean(config.ownerTransferNumber) && !call.transferFailed;
+      Boolean(reason) && isReady && canConnectNow(reason ?? "emergency") && !call.transferFailed;
 
     let turnInstruction: string | null = null;
     if (reason && call.transferStage === "collecting_address") {
       turnInstruction = collectAddressInstruction();
     } else if (reason) {
       turnInstruction = transferTurnInstruction(reason, canConnect);
+      // Spell out exactly why a transfer will or won't happen - without
+      // this a failed handoff is indistinguishable from a missed one.
+      if (!canConnect) {
+        logger.warn(
+          {
+            callId,
+            reason,
+            hasTransferNumber: Boolean(config.ownerTransferNumber),
+            transferStage: call.transferStage,
+            alreadyFailed: call.transferFailed,
+          },
+          "transfer NOT possible - agent will take a message instead",
+        );
+      }
     }
 
     // Attach transfer_number to the FIRST chunk, never the closing one -

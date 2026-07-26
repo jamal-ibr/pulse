@@ -21,8 +21,18 @@ const envSchema = z.object({
   // --- Emergency escalation ---
   /** Number a live call is transferred to for genuine emergencies. */
   OWNER_TRANSFER_NUMBER: z.string().default(""),
-  /** Only attempt live transfer inside working hours (else alert only). */
-  TRANSFER_WORKING_HOURS_ONLY: z.coerce.boolean().default(false),
+  /**
+   * Restrict NON-emergency handovers to working hours. Emergencies always
+   * transfer, whatever the time - that is the entire point of an emergency.
+   *
+   * Parsed explicitly, NOT with z.coerce.boolean(): coercion follows JS
+   * truthiness, so the string "false" would come out TRUE and silently
+   * switch this on.
+   */
+  TRANSFER_WORKING_HOURS_ONLY: z
+    .string()
+    .optional()
+    .transform((v) => ["true", "1", "yes", "on"].includes((v ?? "").trim().toLowerCase())),
 
   /** How many engineers can be on jobs at once (diary capacity per slot). */
   ENGINEER_CAPACITY: z.coerce.number().int().positive().default(3),

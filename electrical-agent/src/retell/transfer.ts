@@ -10,22 +10,54 @@ import { isWithinWorkingHours } from "../scheduling/openingHours.js";
  * caller to the owner's mobile, which is worse than a missed one.
  */
 
-/** Hazards where the caller should be put through, not booked in. */
+/**
+ * Hazards where the caller should be put through, not booked in.
+ *
+ * Written against SPEECH-TO-TEXT output, not clean prose. Transcription
+ * regularly mangles the exact words a caller uses - a live call came
+ * through as "sparkling" rather than "sparking" and slipped past an
+ * earlier, tighter pattern - so stems are deliberately loose.
+ */
 const EMERGENCY_PATTERN = new RegExp(
   [
-    "\\bfire\\b",
-    "\\bflames?\\b",
-    "\\bsmoke\\b|\\bsmoking\\b",
-    "burning smell|smell(?:s|ing)? (?:of |like )?burning|burnt smell",
-    "\\bsparks?\\b|\\bsparking\\b|\\barcing\\b",
-    "\\bexplod(?:ed|ing)\\b|\\bbang(?:ed|ing)?\\b.*\\b(?:fuse|board|socket|wire)",
-    "electrocut(?:ed|ion)|electric shock|got a shock|had a shock|been shocked",
-    "live wires?|exposed wires?|bare wires?",
-    "water.*(?:fuse ?board|consumer unit|socket|electric)|(?:fuse ?board|consumer unit).*(?:water|leak|flood)",
-    "melting|melted|scorch(?:ed|ing)?|burn(?:ed|t) out",
+    "\\bfire\\b|\\bflames?\\b|\\bsmoke\\b|\\bsmoking\\b|\\bsmouldering\\b",
+    // spark / sparks / sparking / sparkle / sparkling (common mishearing)
+    "\\bspark\\w*|\\barc(?:s|ing|ed)?\\b|\\bcrackl\\w*|\\bbuzz\\w*|\\bpopping\\b|\\bfizz\\w*",
+    "burn\\w* smell|smell\\w* (?:of |like )?burn\\w*|burnt smell|smells? hot",
+    "\\bexplod\\w*|\\bbang\\w*\\b.{0,20}\\b(?:fuse|board|socket|wire)",
+    "electrocut\\w*|electric shock|got a shock|had a shock|been shocked|shocked me",
+    "live wires?|exposed wires?|bare wires?|wires?\\s+(?:are\\s+|is\\s+)?(?:hanging|showing|sticking|out\\b)",
+    "water.{0,40}(?:fuse ?bo(?:ard|x)|consumer unit|socket|electric)",
+    "(?:fuse ?bo(?:ard|x)|consumer unit).{0,40}(?:water|leak|flood|damp)",
+    "melt\\w*|scorch\\w*|burn(?:ed|t) out|too hot to touch|red hot",
   ].join("|"),
   "i",
 );
+
+/**
+ * Words that flip the meaning of a hazard mention. "There's no burning or
+ * smoke" must not escalate, but "no power, and it's sparking" must.
+ */
+const NEGATION_WINDOW = 28;
+const NEGATION_PATTERN = /\b(?:no|not|isn'?t|aren'?t|wasn'?t|without|nothing|never|hasn'?t|don'?t)\b/i;
+
+/** True when this specific match is preceded by a negation. */
+function isNegated(utterance: string, matchIndex: number): boolean {
+  const before = utterance.slice(Math.max(0, matchIndex - NEGATION_WINDOW), matchIndex);
+  // A clause break resets the negation: "no smoke, but it's sparking".
+  const lastClause = before.split(/[,;.]|\bbut\b|\bthough\b/i).pop() ?? before;
+  return NEGATION_PATTERN.test(lastClause);
+}
+
+/** Any non-negated hazard mention in the utterance. */
+function hasUnnegatedHazard(utterance: string): boolean {
+  const pattern = new RegExp(EMERGENCY_PATTERN.source, "gi");
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(utterance)) !== null) {
+    if (!isNegated(utterance, match.index)) return true;
+  }
+  return false;
+}
 
 /** Caller explicitly asking for a human. */
 const HUMAN_REQUEST_PATTERN = new RegExp(
@@ -67,7 +99,7 @@ export interface TransferDecision {
 }
 
 export function detectTransferNeed(utterance: string): TransferDecision {
-  const emergency = EMERGENCY_PATTERN.test(utterance);
+  const emergency = hasUnnegatedHazard(utterance);
   const humanRequested = HUMAN_REQUEST_PATTERN.test(utterance);
 
   if (!emergency && !humanRequested) {
@@ -75,12 +107,22 @@ export function detectTransferNeed(utterance: string): TransferDecision {
   }
 
   const reason: TransferReason = emergency ? "emergency" : "human_requested";
-  return { shouldTransfer: true, reason, canConnect: canConnectNow() };
+  return { shouldTransfer: true, reason, canConnect: canConnectNow(reason) };
 }
 
-/** Whether a live transfer is actually possible right now. */
-export function canConnectNow(now: Date = new Date()): boolean {
+/**
+ * Whether a live transfer is actually possible right now.
+ *
+ * Emergencies ignore the working-hours restriction entirely. A burning
+ * smell at 9pm on a Sunday is precisely when the owner most needs the
+ * call - gating that behind office hours defeats the purpose.
+ */
+export function canConnectNow(
+  reason: TransferReason = "emergency",
+  now: Date = new Date(),
+): boolean {
   if (!config.ownerTransferNumber) return false;
+  if (reason === "emergency") return true;
   if (config.transferWorkingHoursOnly && !isWithinWorkingHours(now)) return false;
   return true;
 }
