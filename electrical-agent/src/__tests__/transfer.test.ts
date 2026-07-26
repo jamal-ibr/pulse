@@ -1,5 +1,59 @@
 import { describe, expect, test } from "vitest";
-import { detectTransferNeed, transferTurnInstruction } from "../retell/transfer.js";
+import {
+  collectAddressInstruction,
+  detectTransferNeed,
+  mentionsAddress,
+  transferTurnInstruction,
+} from "../retell/transfer.js";
+
+describe("real call regressions", () => {
+  // The exact opening line from a live call that failed to escalate.
+  const realUtterance =
+    "Hi there. I'm hoping to get something sorted. Like, there's a there's a burning smell coming from my fuse cupboard. And I can hear crackling.";
+
+  test("detects the emergency in a rambling real-world opener", () => {
+    expect(detectTransferNeed(realUtterance).reason).toBe("emergency");
+  });
+
+  test("partial transcripts do NOT match - which is why detection must re-run as the turn grows", () => {
+    expect(detectTransferNeed("Hi there.").shouldTransfer).toBe(false);
+    expect(detectTransferNeed("Hi there. I'm hoping to get something sorted.").shouldTransfer).toBe(
+      false,
+    );
+  });
+
+  test("an explicit demand for the owner is a human request", () => {
+    expect(detectTransferNeed("I need you to put me through to Idris").reason).toBe(
+      "human_requested",
+    );
+  });
+});
+
+describe("mentionsAddress", () => {
+  test.each([
+    "five Mendip Road, Birmingham B8 3JF",
+    "it's 14 Oak Road",
+    "the postcode is CR0 1AA",
+  ])("spots an address: %s", (utterance) => {
+    expect(mentionsAddress(utterance)).toBe(true);
+  });
+
+  test.each(["there's a burning smell", "my fuse board is sparking", "yes that's right"])(
+    "does not spot one in: %s",
+    (utterance) => {
+      expect(mentionsAddress(utterance)).toBe(false);
+    },
+  );
+});
+
+describe("collectAddressInstruction", () => {
+  test("asks for the address only, and forbids stalling", () => {
+    const text = collectAddressInstruction().toLowerCase();
+    expect(text).toContain("address and postcode");
+    expect(text).toContain("ask nothing else");
+    expect(text).toContain("do not say the office will ring back");
+  });
+});
 
 describe("detectTransferNeed - emergencies", () => {
   test.each([
@@ -51,8 +105,11 @@ describe("transferTurnInstruction", () => {
   test("tells the agent to announce the handoff when it can connect", () => {
     const text = transferTurnInstruction("emergency", true);
     expect(text).toContain("TRANSFER IN PROGRESS");
-    expect(text.toLowerCase()).toContain("safety");
     expect(text.toLowerCase()).toContain("stay on the line");
+    // The safety line belongs to the earlier collect-address stage, so it
+    // must NOT be repeated here - the caller is being connected now.
+    expect(text.toLowerCase()).toContain("confirm it");
+    expect(text.toLowerCase()).toContain("ask no further questions");
   });
 
   test("never promises a handoff when it cannot connect", () => {

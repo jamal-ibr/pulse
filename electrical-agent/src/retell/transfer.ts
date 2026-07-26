@@ -42,6 +42,23 @@ const HUMAN_REQUEST_PATTERN = new RegExp(
 
 export type TransferReason = "emergency" | "human_requested";
 
+/**
+ * Rough check for whether the caller has already given us somewhere to
+ * send an engineer. Used to skip the "what's the address?" step when they
+ * volunteered it up front, so an emergency transfers a turn sooner.
+ */
+const ADDRESS_PATTERN = new RegExp(
+  [
+    "\\b[A-Z]{1,2}\\d[A-Z\\d]?\\s*\\d[A-Z]{2}\\b", // written postcode, e.g. B8 3JF
+    "\\b\\d+[a-z]?\\s+\\w+\\s+(road|street|avenue|lane|close|drive|way|court|crescent|terrace|gardens)\\b",
+  ].join("|"),
+  "i",
+);
+
+export function mentionsAddress(utterance: string): boolean {
+  return ADDRESS_PATTERN.test(utterance);
+}
+
 export interface TransferDecision {
   shouldTransfer: boolean;
   reason: TransferReason | null;
@@ -73,6 +90,19 @@ export function canConnectNow(now: Date = new Date()): boolean {
  * agent speaks match the action the backend is about to take. Without
  * this the agent might carry on qualifying while the call is transferred.
  */
+/**
+ * Spoken while we get the one detail that makes an emergency alert
+ * actionable. Kept to a single question so the caller is put through fast.
+ */
+export function collectAddressInstruction(): string {
+  return [
+    "EMERGENCY - ESCALATING NOW.",
+    "Give the single most important safety instruction in one short sentence.",
+    "Then ask ONLY for the address and postcode. Ask nothing else - not their name, not their number, not when someone is home.",
+    `You will be putting them through to ${config.ownerName} on the very next turn, so do not offer to book anything and do not say the office will ring back.`,
+  ].join(" ");
+}
+
 export function transferTurnInstruction(reason: TransferReason, canConnect: boolean): string {
   if (!canConnect) {
     return [
@@ -88,9 +118,9 @@ export function transferTurnInstruction(reason: TransferReason, canConnect: bool
   return [
     "TRANSFER IN PROGRESS - the call will be transferred the moment you finish speaking.",
     reason === "emergency"
-      ? "This is an emergency. Give the single most important safety instruction in one short sentence first."
+      ? "This is an emergency. If they have just given an address, repeat it back in a few words to confirm it."
       : "The caller has asked to speak to a person.",
     `Then tell them plainly that you are putting them through to ${config.ownerName} now and to stay on the line.`,
-    "Keep it to two short sentences. Do not ask any further questions - there is no time for another answer.",
+    "Keep it to two short sentences. Ask no further questions - there is no time for another answer, and do not say the office will ring back.",
   ].join(" ");
 }

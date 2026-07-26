@@ -7,7 +7,12 @@ import { onCallEnded, onTransferAttempted, onUserTurn } from "../actions/actionE
 import { getOrCreateCall, updateCall } from "../state/callStore.js";
 import type { TranscriptTurn } from "../state/callStore.js";
 import { loadAvailability } from "../scheduling/availability.js";
-import { detectTransferNeed, transferTurnInstruction } from "./transfer.js";
+import {
+  collectAddressInstruction,
+  detectTransferNeed,
+  mentionsAddress,
+  transferTurnInstruction,
+} from "./transfer.js";
 import { configEvent, pingPongEvent, responseChunk, retellInboundEventSchema } from "./types.js";
 
 /**
@@ -118,12 +123,20 @@ export function handleRetellConnection(ws: WebSocket, callId: string): void {
     const startedAt = Date.now();
     let firstDeltaLogged = false;
 
-    // A transfer flagged on the last caller turn is executed on THIS
-    // response: the agent announces the handoff, then Retell transfers
-    // once the line has been fully spoken.
+    // A flagged transfer runs in two stages: first grab the address so the
+    // alert is actionable, then transfer on the following response. Callers
+    // who asked for a person skip straight to "ready".
     const reason = call.pendingTransferReason;
-    const canConnect = Boolean(reason) && Boolean(config.ownerTransferNumber) && !call.transferFailed;
-    const turnInstruction = reason ? transferTurnInstruction(reason, canConnect) : null;
+    const isReady = call.transferStage === "ready";
+    const canConnect =
+      Boolean(reason) && isReady && Boolean(config.ownerTransferNumber) && !call.transferFailed;
+
+    let turnInstruction: string | null = null;
+    if (reason && call.transferStage === "collecting_address") {
+      turnInstruction = collectAddressInstruction();
+    } else if (reason) {
+      turnInstruction = transferTurnInstruction(reason, canConnect);
+    }
 
     // Attach transfer_number to the FIRST chunk, never the closing one -
     // transfers set on the final chunk have been reported to be dropped.
@@ -153,6 +166,7 @@ export function handleRetellConnection(ws: WebSocket, callId: string): void {
           updateCall(callId, {
             transferInitiatedAt: new Date().toISOString(),
             pendingTransferReason: null,
+            transferStage: null,
           });
           logger.info({ callId, reason }, "transfer initiated");
           void onTransferAttempted(callId, "initiated");
@@ -170,7 +184,7 @@ export function handleRetellConnection(ws: WebSocket, callId: string): void {
     // Nothing was streamed (e.g. the model errored) but a transfer was due:
     // clear the flag so we don't strand the caller waiting for a handoff.
     if (transferPending) {
-      updateCall(callId, { pendingTransferReason: null });
+      updateCall(callId, { pendingTransferReason: null, transferStage: null });
     }
     logger.debug({ callId, responseId, reply: preview(full) }, "response complete");
   }
@@ -186,25 +200,46 @@ function syncTranscript(callId: string, transcript: TranscriptTurn[]): void {
   updateCall(callId, { transcript });
 
   const userTurns = transcript.filter((t) => t.role === "user");
-  if (userTurns.length <= previousUserTurns) return;
+  if (userTurns.length === 0) return;
 
-  const latest = userTurns[userTurns.length - 1];
+  const latest = userTurns[userTurns.length - 1].content;
+  const isNewTurn = userTurns.length > previousUserTurns;
+
+  // Retell streams partial transcripts, so a turn's text grows in place.
+  // Re-evaluate on every content change - checking only on a new turn
+  // means we judge "Hi there." and never see "...burning smell..." arrive.
+  if (latest === call.lastUserUtterance) return;
+  updateCall(callId, { lastUserUtterance: latest });
 
   // Instant, no-API transfer triage so an emergency never waits for an
   // extraction pass. Only ever arm it once per call.
   if (!call.transferInitiatedAt && !call.pendingTransferReason && !call.transferFailed) {
-    const decision = detectTransferNeed(latest.content);
+    const decision = detectTransferNeed(latest);
     if (decision.shouldTransfer && decision.reason) {
+      // Human requests go through immediately - they asked for a person,
+      // stalling them is exactly what they are complaining about. For an
+      // emergency, grab the address first so the alert is actionable,
+      // unless they have already given it.
+      const stage =
+        decision.reason === "human_requested" || mentionsAddress(latest)
+          ? "ready"
+          : "collecting_address";
       logger.info(
-        { callId, reason: decision.reason, canConnect: decision.canConnect },
+        { callId, reason: decision.reason, stage, canConnect: decision.canConnect },
         "transfer flagged",
       );
-      updateCall(callId, { pendingTransferReason: decision.reason });
-      // Get the details to the owner immediately, whether or not the live
-      // transfer connects.
+      updateCall(callId, { pendingTransferReason: decision.reason, transferStage: stage });
       void onTransferAttempted(callId, "flagged");
     }
+  } else if (
+    call.pendingTransferReason &&
+    call.transferStage === "collecting_address" &&
+    isNewTurn
+  ) {
+    // They have answered the address question - transfer on this response.
+    logger.info({ callId }, "address captured - transfer ready");
+    updateCall(callId, { transferStage: "ready" });
   }
 
-  void onUserTurn(callId, latest.content);
+  if (isNewTurn) void onUserTurn(callId, latest);
 }

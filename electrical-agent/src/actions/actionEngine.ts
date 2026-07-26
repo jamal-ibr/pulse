@@ -156,7 +156,26 @@ export function readCallerId(callDetails: Record<string, unknown> | null): strin
   return null;
 }
 
+/**
+ * Send the office an urgent alert - once per call.
+ *
+ * Held back until it is actually actionable: an alert with no address is
+ * nearly useless to an engineer. It goes the moment we have an address,
+ * the transfer fires, or the call ends - whichever comes first, so nothing
+ * is ever lost.
+ */
 function fireUrgentAlert(callId: string, job: ExtractedJob | null, stage: string): void {
+  const pending = getCall(callId);
+  const hasAddress = Boolean(job?.job_address || job?.postcode);
+  // Deliberately NOT gated on the transfer firing: at that instant the
+  // extraction carrying the address may still be in flight, and sending
+  // early would claim the one-shot send with a blank alert.
+  const readyToSend = hasAddress || Boolean(pending?.callEndedAt);
+  if (!readyToSend) {
+    logger.debug({ callId, stage }, "urgent alert held - no address captured yet");
+    return;
+  }
+
   if (!claimAction(callId, "urgentAlertSent")) return;
   const call = getCall(callId);
   const phone = job?.caller_phone ?? readCallerId(call?.callDetails ?? null);

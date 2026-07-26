@@ -34,8 +34,20 @@ export interface CallState {
   extractionInFlight: boolean;
   availabilityContext: string | null;
 
+  /**
+   * Latest caller utterance we have already evaluated. Retell streams
+   * partial transcripts, so a turn's text grows in place - we must
+   * re-check on every content change, not only on a new turn.
+   */
+  lastUserUtterance: string;
+
   /** Set when a transfer is warranted but not yet spoken/executed. */
   pendingTransferReason: TransferReason | null;
+  /**
+   * "collecting_address" - emergency spotted, get the address first so the
+   * alert is actionable; "ready" - transfer on the next response.
+   */
+  transferStage: "collecting_address" | "ready" | null;
   /** Set once transfer_number has actually been sent to Retell. */
   transferInitiatedAt: string | null;
   /** True when the caller came back after a transfer attempt (it failed). */
@@ -63,7 +75,9 @@ function newCallState(callId: string): CallState {
     userTurnsSinceExtraction: 0,
     extractionInFlight: false,
     availabilityContext: null,
+    lastUserUtterance: "",
     pendingTransferReason: null,
+    transferStage: null,
     transferInitiatedAt: null,
     transferFailed: false,
   };
