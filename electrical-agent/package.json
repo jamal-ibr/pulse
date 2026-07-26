@@ -1,0 +1,34 @@
+{
+  "name": "pulse-electrical-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pulse AI voice agent for an electrical contractor: Retell Custom LLM <-> Claude <-> n8n, with emergency transfer to the business owner",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "simulate": "tsx scripts/simulate-retell.ts",
+    "simulate:emergency": "tsx scripts/simulate-retell.ts emergency"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.10.0",
+    "pino": "^10.3.1",
+    "ws": "^8.21.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/ws": "^8.18.1",
+    "pino-pretty": "^13.1.3",
+    "tsx": "^4.23.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}
