@@ -1,0 +1,41 @@
+name: Electrical Agent CI
+
+# Runs typecheck + tests + a production build on any change to the
+# electrical agent, so a broken change is visible before it reaches a call.
+on:
+  push:
+    paths:
+      - "electrical-agent/**"
+      - ".github/workflows/electrical-agent-ci.yml"
+  pull_request:
+    paths:
+      - "electrical-agent/**"
+      - ".github/workflows/electrical-agent-ci.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: electrical-agent
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: electrical-agent/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build (same steps as the Docker image)
+        run: npm run build
