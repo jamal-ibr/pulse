@@ -8,6 +8,7 @@ import { handleRetellConnection } from "./retell/llmWebSocket.js";
 import { postToMake } from "./make/makeClient.js";
 import { extractLead } from "./extraction/extractor.js";
 import { getCall } from "./state/callStore.js";
+import { loadAvailability } from "./scheduling/availability.js";
 
 const WS_PATH_PATTERN = /^\/retell\/llm\/([^/?#]+)/;
 
@@ -24,6 +25,17 @@ export async function buildServer() {
   }));
 
   registerRetellWebhook(app);
+
+  // Shows exactly what the agent would offer a caller right now. Open it in
+  // a browser after wiring the availability workflow - no call required.
+  app.get("/internal/availability", async () => {
+    const snapshot = await loadAvailability("manual-check");
+    return {
+      isLive: snapshot.isLive,
+      slotCount: snapshot.slots.length,
+      promptContext: snapshot.promptContext,
+    };
+  });
 
   // Local test: forward an arbitrary payload to one of the Make webhooks.
   const makeTestSchema = z.object({
