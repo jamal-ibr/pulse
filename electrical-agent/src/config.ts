@@ -93,7 +93,33 @@ export const config = {
 
 export type WebhookKind = keyof typeof config.webhooks;
 
+/**
+ * True when the escalation number is the agent's own Retell number.
+ *
+ * This silently breaks BOTH escalation paths: an in-call transfer sends
+ * the caller back to the agent they are already speaking to, and an
+ * outbound call is a number ringing itself (Retell answers 404). It looks
+ * like "the transfer just doesn't work" and gives no useful error, so it
+ * is worth failing loudly instead.
+ */
+export function escalationNumberIsSelf(): boolean {
+  const owner = normaliseNumber(config.ownerTransferNumber);
+  const from = normaliseNumber(config.retellFromNumber);
+  return Boolean(owner) && owner === from;
+}
+
+function normaliseNumber(value: string): string {
+  return value.replace(/[\s()-]/g, "");
+}
+
 export function validateRequiredSecrets(warn: (msg: string) => void): void {
+  if (escalationNumberIsSelf()) {
+    warn(
+      "OWNER_TRANSFER_NUMBER is the same as RETELL_FROM_NUMBER. Escalation cannot work: " +
+        "the agent would transfer callers to itself, and outbound calls would ring their own number. " +
+        "OWNER_TRANSFER_NUMBER must be the owner's mobile, NOT the number callers dial.",
+    );
+  }
   if (!config.anthropicApiKey) {
     warn("ANTHROPIC_API_KEY is not set - Claude calls will fail. Set it in .env");
   }

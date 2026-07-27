@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import { WebSocketServer } from "ws";
 import { z } from "zod";
-import { config } from "./config.js";
+import { config, escalationNumberIsSelf } from "./config.js";
 import { logger } from "./logger.js";
 import { registerRetellWebhook } from "./retell/webhook.js";
 import { handleRetellConnection } from "./retell/llmWebSocket.js";
@@ -27,6 +27,13 @@ export async function buildServer() {
     model: config.claudeModel,
     transferConfigured: Boolean(config.ownerTransferNumber),
     outboundCallConfigured: Boolean(config.retellApiKey && config.retellFromNumber),
+    // Loud, because it silently breaks every escalation path.
+    ...(escalationNumberIsSelf()
+      ? {
+          CONFIG_ERROR:
+            "OWNER_TRANSFER_NUMBER equals RETELL_FROM_NUMBER - escalation cannot work. Set OWNER_TRANSFER_NUMBER to the owner's mobile.",
+        }
+      : {}),
     uptimeSeconds: Math.round(process.uptime()),
   }));
 
@@ -75,6 +82,7 @@ export async function buildServer() {
     return {
       transferConfigured: Boolean(number),
       numberLooksValid: /^\+\d{10,15}$/.test(number),
+      ownerNumberIsOurOwnNumber: escalationNumberIsSelf(),
       numberPreview: number ? `${number.slice(0, 4)}…${number.slice(-3)}` : null,
       transferWorkingHoursOnly: config.transferWorkingHoursOnly,
       canConnectNow: canConnectNow(),

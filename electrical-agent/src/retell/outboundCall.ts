@@ -1,4 +1,4 @@
-import { config } from "../config.js";
+import { config, escalationNumberIsSelf } from "../config.js";
 import { logger } from "../logger.js";
 import type { ExtractedJob } from "../extraction/jobSchema.js";
 
@@ -69,6 +69,18 @@ export async function callOwnerWithBriefing(
   if (missing.length > 0) {
     logger.warn({ callId, missing }, "owner callback not configured - skipping outbound call");
     return { ok: false, reason: `missing config: ${missing.join(", ")}` };
+  }
+
+  if (escalationNumberIsSelf()) {
+    logger.error(
+      { callId, number: config.ownerTransferNumber },
+      "OWNER_TRANSFER_NUMBER equals RETELL_FROM_NUMBER - the agent would ring its own number",
+    );
+    return {
+      ok: false,
+      reason:
+        "OWNER_TRANSFER_NUMBER is the same as RETELL_FROM_NUMBER. Set OWNER_TRANSFER_NUMBER to the owner's mobile, not the number callers dial.",
+    };
   }
 
   const briefing = buildOwnerBriefing(context);

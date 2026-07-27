@@ -1,4 +1,4 @@
-import { config } from "../config.js";
+import { config, escalationNumberIsSelf } from "../config.js";
 import { isWithinWorkingHours } from "../scheduling/openingHours.js";
 
 /**
@@ -123,6 +123,8 @@ export function canConnectNow(
   now: Date = new Date(),
 ): boolean {
   if (!config.ownerTransferNumber) return false;
+  // Transferring to our own number sends the caller back to this agent.
+  if (escalationNumberIsSelf()) return false;
   if (reason === "emergency") return true;
   if (config.transferWorkingHoursOnly && !isWithinWorkingHours(now)) return false;
   return true;
