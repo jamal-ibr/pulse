@@ -15,6 +15,30 @@ import { callOwnerWithBriefing } from "./retell/outboundCall.js";
 
 const WS_PATH_PATTERN = /^\/retell\/llm\/([^/?#]+)/;
 
+/**
+ * Retell's outbound errors are terse ("Not Found"), so translate the ones
+ * we have actually hit into the dashboard setting that causes them.
+ */
+function hintForStatus(status: number | undefined, hasNotifyAgent: boolean): string | undefined {
+  if (status === 404) {
+    return [
+      "Retell could not find something it needs to place the call. Most likely one of:",
+      hasNotifyAgent
+        ? "(1) OWNER_NOTIFY_AGENT_ID does not match a real agent in this Retell account;"
+        : "(1) no OUTBOUND agent is bound to your Retell number - bind one in Retell > Phone Numbers, or set OWNER_NOTIFY_AGENT_ID to an agent ID;",
+      "(2) RETELL_FROM_NUMBER is not a number owned/imported in this Retell account;",
+      "(3) the destination country is not enabled on the number (allowed_outbound_country_list must include GB for UK mobiles).",
+    ].join(" ");
+  }
+  if (status === 401 || status === 403) {
+    return "RETELL_API_KEY is wrong or lacks permission for outbound calls.";
+  }
+  if (status === 422 || status === 400) {
+    return "Payload rejected - check both numbers are E.164 (+44...) and that from_number is owned in Retell.";
+  }
+  return undefined;
+}
+
 export async function buildServer() {
   const app = Fastify({ logger: false });
 
@@ -67,10 +91,7 @@ export async function buildServer() {
         toNumber: config.ownerTransferNumber || null,
         notifyAgentId: config.ownerNotifyAgentId || null,
       },
-      hint:
-        result.status === 422 || result.status === 400
-          ? "Check from_number is a number you own IN Retell, and that both numbers are E.164 (+44...)."
-          : undefined,
+      hint: hintForStatus(result.status, Boolean(config.ownerNotifyAgentId)),
     };
   });
 

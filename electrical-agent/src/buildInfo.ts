@@ -7,4 +7,4 @@
  * does not show the tag you expect, the deploy has not landed - fix that
  * before debugging anything else.
  */
-export const BUILD_TAG = "2026-07-27-selfcall-guard-v6";
+export const BUILD_TAG = "2026-07-27-retell-hints-v7";
