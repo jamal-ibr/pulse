@@ -11,6 +11,7 @@ import { getCall } from "./state/callStore.js";
 import { loadAvailability } from "./scheduling/availability.js";
 import { canConnectNow, detectTransferNeed } from "./retell/transfer.js";
 import { BUILD_TAG } from "./buildInfo.js";
+import { callOwnerWithBriefing } from "./retell/outboundCall.js";
 
 const WS_PATH_PATTERN = /^\/retell\/llm\/([^/?#]+)/;
 
@@ -30,6 +31,41 @@ export async function buildServer() {
   }));
 
   registerRetellWebhook(app);
+
+  /**
+   * Places a REAL outbound call to the owner, right now, and returns
+   * Retell's verbatim response.
+   *
+   * This exists to separate "our code is wrong" from "Retell won't do it".
+   * Open it in a browser: if the phone rings, outbound calling works and
+   * the problem is upstream in detection. If it doesn't, the JSON contains
+   * Retell's own error message explaining why.
+   */
+  app.get("/internal/test-owner-call", async () => {
+    const result = await callOwnerWithBriefing({
+      callId: "manual-test",
+      callerNumber: "+447700900123",
+      job: {
+        job_address: "TEST - 1 Example Street",
+        postcode: "B1 1AA",
+        job_description: "This is a test of the emergency escalation call",
+        safety_flags: ["sparks_or_arcing"],
+      } as never,
+    });
+    return {
+      ...result,
+      config: {
+        hasApiKey: Boolean(config.retellApiKey),
+        fromNumber: config.retellFromNumber || null,
+        toNumber: config.ownerTransferNumber || null,
+        notifyAgentId: config.ownerNotifyAgentId || null,
+      },
+      hint:
+        result.status === 422 || result.status === 400
+          ? "Check from_number is a number you own IN Retell, and that both numbers are E.164 (+44...)."
+          : undefined,
+    };
+  });
 
   // Confirms the escalation path is wired, and shows how a given phrase
   // would be classified - so you can test detection from a browser.

@@ -40,24 +40,35 @@ export function buildOwnerBriefing(context: OwnerCallContext): string {
   return parts.filter(Boolean).join(" ");
 }
 
+export interface OutboundCallResult {
+  ok: boolean;
+  /** Why it did not happen, in plain terms. */
+  reason: string;
+  /** HTTP status from Retell, when a request was actually made. */
+  status?: number;
+  /** Retell's own error body - the thing that actually explains failures. */
+  retellResponse?: string;
+  briefing?: string;
+}
+
 /**
  * Place the call. Never throws - escalation failing must not break the
- * live conversation. Returns true when Retell accepted the request.
+ * live conversation.
  */
-export async function callOwnerWithBriefing(context: OwnerCallContext): Promise<boolean> {
+export async function callOwnerWithBriefing(
+  context: OwnerCallContext,
+): Promise<OutboundCallResult> {
   const { callId } = context;
 
-  if (!config.retellApiKey || !config.retellFromNumber || !config.ownerTransferNumber) {
-    logger.warn(
-      {
-        callId,
-        hasApiKey: Boolean(config.retellApiKey),
-        hasFromNumber: Boolean(config.retellFromNumber),
-        hasOwnerNumber: Boolean(config.ownerTransferNumber),
-      },
-      "owner callback not configured - skipping outbound call",
-    );
-    return false;
+  const missing = [
+    !config.retellApiKey ? "RETELL_API_KEY" : "",
+    !config.retellFromNumber ? "RETELL_FROM_NUMBER" : "",
+    !config.ownerTransferNumber ? "OWNER_TRANSFER_NUMBER" : "",
+  ].filter(Boolean);
+
+  if (missing.length > 0) {
+    logger.warn({ callId, missing }, "owner callback not configured - skipping outbound call");
+    return { ok: false, reason: `missing config: ${missing.join(", ")}` };
   }
 
   const briefing = buildOwnerBriefing(context);
@@ -86,19 +97,33 @@ export async function callOwnerWithBriefing(context: OwnerCallContext): Promise<
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
+    const body = await res.text().catch(() => "");
+
     if (!res.ok) {
-      const detail = await res.text().catch(() => "");
       logger.error(
-        { callId, status: res.status, detail: detail.slice(0, 300) },
+        { callId, status: res.status, detail: body.slice(0, 500) },
         "outbound owner call rejected by Retell",
       );
-      return false;
+      return {
+        ok: false,
+        reason: "Retell rejected the request",
+        status: res.status,
+        retellResponse: body.slice(0, 500),
+        briefing,
+      };
     }
 
-    logger.info({ callId }, "outbound owner call placed");
-    return true;
+    logger.info({ callId, status: res.status }, "outbound owner call placed");
+    return {
+      ok: true,
+      reason: "Retell accepted the call",
+      status: res.status,
+      retellResponse: body.slice(0, 300),
+      briefing,
+    };
   } catch (err) {
-    logger.error({ callId, err: (err as Error).message }, "outbound owner call failed");
-    return false;
+    const message = (err as Error).message;
+    logger.error({ callId, err: message }, "outbound owner call failed");
+    return { ok: false, reason: `network/timeout error: ${message}`, briefing };
   }
 }
