@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import {
   canConnectNow,
   collectAddressInstruction,
@@ -231,5 +231,39 @@ describe("live transcript lines that failed to escalate", () => {
     // Every one of these was said on a live call and ignored.
     if (utterance === "I need the engine one.") return; // mis-transcription, model backstop covers it
     expect(detectTransferNeed(utterance).shouldTransfer).toBe(true);
+  });
+});
+
+describe("escalationNumberIsSelf - the live misconfiguration", () => {
+  test("spots the owner number being our own Retell number", async () => {
+    // Reproduces the exact live config that broke every escalation:
+    // OWNER_TRANSFER_NUMBER and RETELL_FROM_NUMBER both +447425478517.
+    vi.resetModules();
+    vi.stubEnv("OWNER_TRANSFER_NUMBER", "+447425478517");
+    vi.stubEnv("RETELL_FROM_NUMBER", "+447425478517");
+    const { escalationNumberIsSelf } = await import("../config.js");
+    expect(escalationNumberIsSelf()).toBe(true);
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  test("ignores formatting differences between the two numbers", async () => {
+    vi.resetModules();
+    vi.stubEnv("OWNER_TRANSFER_NUMBER", "+44 7425 478517");
+    vi.stubEnv("RETELL_FROM_NUMBER", "+447425478517");
+    const { escalationNumberIsSelf } = await import("../config.js");
+    expect(escalationNumberIsSelf()).toBe(true);
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  test("is happy when they are genuinely different numbers", async () => {
+    vi.resetModules();
+    vi.stubEnv("OWNER_TRANSFER_NUMBER", "+447700900123");
+    vi.stubEnv("RETELL_FROM_NUMBER", "+441234567890");
+    const { escalationNumberIsSelf } = await import("../config.js");
+    expect(escalationNumberIsSelf()).toBe(false);
+    vi.unstubAllEnvs();
+    vi.resetModules();
   });
 });
